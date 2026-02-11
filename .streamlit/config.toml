@@ -9,18 +9,3 @@ font="sans serif"
 headless = true
 port = 8501
 enableCORS = false
-```
-
-5. Click **"Commit changes"**
-
-### **Step 2: Add .gitignore**
-
-1. Click **"Add file"** → **"Create new file"**
-2. Filename: `.gitignore`
-3. Paste:
-```
-__pycache__/
-*.py[cod]
-*.pyc
-.DS_Store
-model_assumptions.json

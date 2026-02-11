@@ -1,0 +1,26 @@
+[theme]
+primaryColor="#1f77b4"
+backgroundColor="#ffffff"
+secondaryBackgroundColor="#f0f2f6"
+textColor="#262730"
+font="sans serif"
+
+[server]
+headless = true
+port = 8501
+enableCORS = false
+```
+
+5. Click **"Commit changes"**
+
+### **Step 2: Add .gitignore**
+
+1. Click **"Add file"** → **"Create new file"**
+2. Filename: `.gitignore`
+3. Paste:
+```
+__pycache__/
+*.py[cod]
+*.pyc
+.DS_Store
+model_assumptions.json

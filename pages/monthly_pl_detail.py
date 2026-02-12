@@ -103,18 +103,16 @@ def show():
         fig = go.Figure()
         fig.add_trace(go.Bar(name='DTC', x=df_2025['Month'], y=df_2025['DTC Revenue'], marker_color='#2E86AB'))
         fig.add_trace(go.Bar(name='Wholesale', x=df_2025['Month'], y=df_2025['Wholesale Revenue'], marker_color='#A23B72'))
-        fig.add_trace(go.Scatter(name='COGS', x=df_2025['Month'], y=df_2025['COGS'], mode='lines+markers', marker_color='#E63946', yaxis='y2'))
+        fig.add_trace(go.Scatter(name='COGS', x=df_2025['Month'], y=df_2025['COGS'], mode='lines+markers', marker_color='#E63946', line=dict(width=3)))
+        fig.add_trace(go.Scatter(name='Operating Expenses', x=df_2025['Month'], y=df_2025['Operating Expenses'], mode='lines+markers', marker_color='#1D3557'))
         
         colors = ['#00BA38' if x >= 0 else '#F8766D' for x in df_2025['EBITDA']]
-        fig.add_trace(go.Bar(name='EBITDA', x=df_2025['Month'], y=df_2025['EBITDA'], marker_color=colors, yaxis='y2'))
+        fig.add_trace(go.Bar(name='EBITDA', x=df_2025['Month'], y=df_2025['EBITDA'], marker_color=colors))
         
         fig.update_layout(
             title='2025 Monthly Performance',
-            barmode='stack',
             hovermode='x unified',
-            height=450,
-            yaxis=dict(title='Revenue ($)'),
-            yaxis2=dict(title='EBITDA / COGS ($)', overlaying='y', side='right')
+            height=450
         )
         
         st.plotly_chart(fig, use_container_width=True)

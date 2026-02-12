@@ -200,7 +200,7 @@ def show():
     
     st.divider()
     
-    # --- OPERATING EXPENSES ---
+# --- OPERATING EXPENSES ---
     st.markdown("## Operating Expenses")
     
     col1, col2 = st.columns(2)
@@ -227,31 +227,84 @@ def show():
                  help="All other operating expenses")
     
     with col2:
-        # Monthly OpEx trend
-        fig_opex_trend = go.Figure()
+        st.markdown("### OpEx Components")
         
-        fig_opex_trend.add_trace(go.Bar(
-            name='Team Costs',
-            x=df_2026['Month'],
-            y=df_2026['Team Costs'],
-            marker_color='#457B9D'
-        ))
+        # Calculate major expense categories from baseline
+        performance_marketing = 160000
+        affiliate = 50000
+        shopify = 34200
+        klaviyo = 32500  # Migration cost included
+        other_systems = 1200 + 3000  # Yotpo + UpPromote
+        original_opex = 132000  # Travel, development, shipping, etc.
         
-        fig_opex_trend.add_trace(go.Bar(
-            name='Other OpEx',
-            x=df_2026['Month'],
-            y=df_2026['Other OpEx'],
-            marker_color='#1D3557'
-        ))
+        # Display breakdown table
+        opex_data = pd.DataFrame({
+            'Component': [
+                'Performance Marketing',
+                'Affiliate Platform',
+                'Shopify',
+                'Klaviyo (ESP/CRM)',
+                'Other Systems',
+                'Original OpEx',
+                'Team Costs',
+                'Total OpEx'
+            ],
+            'Amount': [
+                performance_marketing,
+                affiliate,
+                shopify,
+                klaviyo,
+                other_systems,
+                original_opex,
+                annual_team_costs,
+                annual_total_opex
+            ],
+            '% of Revenue': [
+                (performance_marketing / annual_total_revenue * 100),
+                (affiliate / annual_total_revenue * 100),
+                (shopify / annual_total_revenue * 100),
+                (klaviyo / annual_total_revenue * 100),
+                (other_systems / annual_total_revenue * 100),
+                (original_opex / annual_total_revenue * 100),
+                (annual_team_costs / annual_total_revenue * 100),
+                (annual_total_opex / annual_total_revenue * 100)
+            ]
+        })
         
-        fig_opex_trend.update_layout(
-            title='Monthly OpEx Trend',
-            barmode='stack',
-            height=300,
-            showlegend=True
-        )
+        # Format for display
+        opex_data['Amount'] = opex_data['Amount'].apply(lambda x: f"${x:,.0f}")
+        opex_data['% of Revenue'] = opex_data['% of Revenue'].apply(lambda x: f"{x:.1f}%")
         
-        st.plotly_chart(fig_opex_trend, use_container_width=True)
+        st.dataframe(opex_data, use_container_width=True, hide_index=True)
+        
+        st.info(f"**Total OpEx:** ${annual_total_opex:,.0f} (54% of revenue)")
+    
+    # Monthly OpEx trend
+    st.markdown("### Monthly OpEx Trend")
+    fig_opex_trend = go.Figure()
+    
+    fig_opex_trend.add_trace(go.Bar(
+        name='Team Costs',
+        x=df_2026['Month'],
+        y=df_2026['Team Costs'],
+        marker_color='#457B9D'
+    ))
+    
+    fig_opex_trend.add_trace(go.Bar(
+        name='Other OpEx',
+        x=df_2026['Month'],
+        y=df_2026['Other OpEx'],
+        marker_color='#1D3557'
+    ))
+    
+    fig_opex_trend.update_layout(
+        title='Monthly OpEx by Category',
+        barmode='stack',
+        height=350,
+        showlegend=True
+    )
+    
+    st.plotly_chart(fig_opex_trend, use_container_width=True)
     
     st.divider()
     

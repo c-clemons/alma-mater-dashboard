@@ -210,51 +210,78 @@ def show():
         if len(st.session_state.wholesale_deals) == 0:
             st.info("📋 No deals yet. Add your first deal in the 'Add New Deal' tab!")
         else:
-            # Summary metrics
-            total_revenue = sum(d['revenue'] for d in st.session_state.wholesale_deals)
-            total_pairs = sum(d['pairs'] for d in st.session_state.wholesale_deals)
-            avg_price = sum(d['price_per_pair'] * d['pairs'] for d in st.session_state.wholesale_deals) / total_pairs if total_pairs > 0 else 0
-            total_gross_profit = sum(d['gross_profit'] for d in st.session_state.wholesale_deals)
-            
+            # Summary metrics - handle both baseline and custom deal formats
+            def get_deal_revenue(d):
+                if 'revenue' in d:
+                    return d['revenue']
+                return d.get('num_pairs', 0) * d.get('wholesale_price', 0)
+
+            def get_deal_pairs(d):
+                return d.get('pairs', d.get('num_pairs', 0))
+
+            def get_deal_price(d):
+                return d.get('price_per_pair', d.get('wholesale_price', 0))
+
+            def get_deal_cogs(d):
+                if 'total_cogs' in d:
+                    return d['total_cogs']
+                if 'total_cost' in d:
+                    return d['total_cost']
+                return get_deal_revenue(d) * 0.40
+
+            def get_deal_gp(d):
+                if 'gross_profit' in d:
+                    return d['gross_profit']
+                return get_deal_revenue(d) - get_deal_cogs(d)
+
+            total_revenue = sum(get_deal_revenue(d) for d in st.session_state.wholesale_deals)
+            total_pairs = sum(get_deal_pairs(d) for d in st.session_state.wholesale_deals)
+            avg_price = total_revenue / total_pairs if total_pairs > 0 else 0
+            total_gross_profit = sum(get_deal_gp(d) for d in st.session_state.wholesale_deals)
+
             col1, col2, col3, col4 = st.columns(4)
-            
+
             with col1:
                 st.metric("Total Pipeline Revenue", f"${total_revenue:,.0f}")
-            
+
             with col2:
                 st.metric("Total Pairs", f"{total_pairs:,.0f}")
-            
+
             with col3:
                 st.metric("Avg Price/Pair", f"${avg_price:.2f}")
-            
+
             with col4:
                 st.metric("Total Gross Profit", f"${total_gross_profit:,.0f}")
-            
+
             st.divider()
-            
-            # Deals table
-            st.markdown("#### 📊 All Deals")
-            
-            deals_df = pd.DataFrame(st.session_state.wholesale_deals)
-            
-            # Format for display
-            display_df = deals_df[[
-                'club_name', 'product_type', 'pairs', 'price_per_pair',
-                'revenue', 'gross_profit', 'gross_margin_pct', 
-                'close_date', 'delivery_date'
-            ]].copy()
-            
-            display_df.columns = [
-                'Club', 'Product', 'Pairs', 'Price/Pair',
-                'Revenue', 'Gross Profit', 'GM %',
-                'Close Date', 'Delivery Date'
-            ]
-            
-            # Format currency
-            display_df['Price/Pair'] = display_df['Price/Pair'].apply(lambda x: f"${x:.2f}")
-            display_df['Revenue'] = display_df['Revenue'].apply(lambda x: f"${x:,.0f}")
-            display_df['Gross Profit'] = display_df['Gross Profit'].apply(lambda x: f"${x:,.0f}")
-            display_df['GM %'] = display_df['GM %'].apply(lambda x: f"{x:.1f}%")
+
+            # Deals table - build rows manually to handle mixed formats
+            st.markdown("#### All Deals")
+
+            table_rows = []
+            for d in st.session_state.wholesale_deals:
+                rev = get_deal_revenue(d)
+                gp = get_deal_gp(d)
+                gm = (gp / rev * 100) if rev > 0 else 0
+                pairs = get_deal_pairs(d)
+                price = get_deal_price(d)
+                name = d.get('club_name', d.get('customer_name', ''))
+                product = d.get('product_type', '')
+                close = d.get('close_date', '')
+                delivery = d.get('delivery_date', '')
+                table_rows.append({
+                    'Club': name,
+                    'Product': product,
+                    'Pairs': pairs,
+                    'Price/Pair': f"${price:.2f}",
+                    'Revenue': f"${rev:,.0f}",
+                    'Gross Profit': f"${gp:,.0f}",
+                    'GM %': f"{gm:.1f}%",
+                    'Close Date': close,
+                    'Delivery Date': delivery,
+                })
+
+            display_df = pd.DataFrame(table_rows)
             
             st.dataframe(display_df, use_container_width=True, hide_index=True)
             

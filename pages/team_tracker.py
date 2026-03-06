@@ -186,61 +186,71 @@ def show():
         if len(st.session_state.team_members) == 0:
             st.info("No team members yet. Add your first team member in the 'Add Team Member' tab!")
         else:
-            # Summary metrics
-            total_annual_cost = sum(m['total_cost'] for m in st.session_state.team_members)
+            # Summary metrics - handle baseline members that don't have 'total_cost'
             total_headcount = len(st.session_state.team_members)
-            avg_salary = sum(m['annual_salary'] for m in st.session_state.team_members) / total_headcount
-            
+            total_salary = sum(m.get('annual_salary', 0) for m in st.session_state.team_members)
+            avg_salary = total_salary / total_headcount if total_headcount > 0 else 0
+            # Estimate total cost: use total_cost if available, otherwise salary * 1.185
+            total_annual_cost = sum(
+                m.get('total_cost', m.get('annual_salary', 0) * 1.185)
+                for m in st.session_state.team_members
+            )
+
             col1, col2, col3, col4 = st.columns(4)
-            
+
             with col1:
                 st.metric("Total Headcount", f"{total_headcount}")
-            
+
             with col2:
                 st.metric("Total Annual Cost", f"${total_annual_cost:,.0f}")
-            
+
             with col3:
                 st.metric("Monthly Payroll", f"${total_annual_cost/12:,.0f}")
-            
+
             with col4:
                 st.metric("Avg Salary", f"${avg_salary:,.0f}")
-            
+
             st.divider()
-            
-            # Team table
+
+            # Team table - build rows manually to handle mixed data shapes
             st.markdown("#### Team Members")
-            
-            team_df = pd.DataFrame(st.session_state.team_members)
-            
-            # Format for display
-            display_df = team_df[[
-                'first_name', 'last_name', 'title', 'department',
-                'employment_type', 'annual_salary', 'total_cost',
-                'start_date', 'status'
-            ]].copy()
-            
-            display_df.columns = [
-                'First Name', 'Last Name', 'Title', 'Department',
-                'Type', 'Base Salary', 'Total Cost',
-                'Start Date', 'Status'
-            ]
-            
-            # Format currency
-            display_df['Base Salary'] = display_df['Base Salary'].apply(lambda x: f"${x:,.0f}")
-            display_df['Total Cost'] = display_df['Total Cost'].apply(lambda x: f"${x:,.0f}")
-            
+
+            table_rows = []
+            for m in st.session_state.team_members:
+                salary = m.get('annual_salary', 0)
+                est_cost = m.get('total_cost', salary * 1.185)
+                table_rows.append({
+                    'First Name': m.get('first_name', ''),
+                    'Last Name': m.get('last_name', ''),
+                    'Title': m.get('title', ''),
+                    'Department': m.get('department', ''),
+                    'Type': m.get('employment_type', ''),
+                    'Base Salary': f"${salary:,.0f}",
+                    'Total Cost': f"${est_cost:,.0f}",
+                    'Start Date': m.get('start_date', ''),
+                    'Status': m.get('status', 'Active'),
+                })
+
+            display_df = pd.DataFrame(table_rows)
             st.dataframe(display_df, use_container_width=True, hide_index=True)
-            
+
             # Department breakdown
             st.divider()
             st.markdown("#### Department Breakdown")
-            
-            dept_summary = team_df.groupby('department').agg({
-                'first_name': 'count',
-                'total_cost': 'sum'
-            }).reset_index()
-            dept_summary.columns = ['Department', 'Headcount', 'Total Annual Cost']
-            dept_summary['Total Annual Cost'] = dept_summary['Total Annual Cost'].apply(lambda x: f"${x:,.0f}")
+
+            dept_data = {}
+            for m in st.session_state.team_members:
+                dept = m.get('department', 'Other')
+                cost = m.get('total_cost', m.get('annual_salary', 0) * 1.185)
+                if dept not in dept_data:
+                    dept_data[dept] = {'count': 0, 'cost': 0}
+                dept_data[dept]['count'] += 1
+                dept_data[dept]['cost'] += cost
+
+            dept_summary = pd.DataFrame([
+                {'Department': dept, 'Headcount': d['count'], 'Total Annual Cost': f"${d['cost']:,.0f}"}
+                for dept, d in dept_data.items()
+            ])
             
             st.dataframe(dept_summary, use_container_width=True, hide_index=True)
             

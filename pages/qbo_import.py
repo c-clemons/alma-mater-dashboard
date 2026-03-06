@@ -77,14 +77,13 @@ def show():
             rows_25 = actuals_to_pl_format(actuals_25)
             df_25 = pd.DataFrame(rows_25)
 
-            # Show key metrics
-            key_cols = ['Month', 'DTC Revenue', 'Wholesale Revenue', 'Total Revenue',
+            # Transpose: months as columns, metrics as rows
+            key_cols = ['DTC Revenue', 'Wholesale Revenue', 'Total Revenue',
                         'Total COGS', 'Gross Profit', 'Total OpEx', 'EBITDA']
-            display_25 = df_25[key_cols].copy()
-            for col in key_cols[1:]:
-                display_25[col] = display_25[col].apply(lambda x: f"${x:,.0f}" if x != 0 else "-")
+            transposed_25 = df_25.set_index('Month')[key_cols].T
+            transposed_25_fmt = transposed_25.applymap(lambda x: f"${x:,.0f}" if x != 0 else "-")
 
-            st.dataframe(display_25, use_container_width=True, hide_index=True)
+            st.dataframe(transposed_25_fmt, use_container_width=True)
 
             totals_25 = df_25[['Total Revenue', 'Total COGS', 'Gross Profit', 'Total OpEx', 'EBITDA']].sum()
             st.markdown(
@@ -111,11 +110,10 @@ def show():
                 rows_26 = actuals_to_pl_format(actuals_26)
                 df_26 = pd.DataFrame(rows_26)
 
-                display_26 = df_26[key_cols].copy()
-                for col in key_cols[1:]:
-                    display_26[col] = display_26[col].apply(lambda x: f"${x:,.0f}" if x != 0 else "-")
+                transposed_26 = df_26.set_index('Month')[key_cols].T
+                transposed_26_fmt = transposed_26.applymap(lambda x: f"${x:,.0f}" if x != 0 else "-")
 
-                st.dataframe(display_26, use_container_width=True, hide_index=True)
+                st.dataframe(transposed_26_fmt, use_container_width=True)
 
                 totals_26 = df_26[['Total Revenue', 'Total COGS', 'Gross Profit', 'Total OpEx', 'EBITDA']].sum()
                 st.markdown(

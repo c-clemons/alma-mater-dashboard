@@ -1,6 +1,7 @@
 """
 Alma Mater Financial Dashboard - Client Presentation
 Streamlined interface for management reporting
+v2.0 - QBO Import & Variance Analysis
 """
 
 import streamlit as st

@@ -12,26 +12,28 @@ from baseline_data import get_rippling_burdens
 
 def calculate_team_costs_monthly(team_members: List[Dict], year: int = 2026) -> Dict[int, float]:
     """
-    Calculate monthly team costs including Rippling burdens starting May 2026
-    
+    Calculate monthly team costs including Rippling burdens starting May 2026.
+    Matches Excel model Team Costs tab formula logic exactly.
+
     Returns: Dict of {month: total_cost}
     """
     monthly_costs = {month: 0.0 for month in range(1, 13)}
     rippling = get_rippling_burdens()
-    
+    pre_rippling_rate = rippling.get('pre_rippling_rate', 0.185)
+
     for member in team_members:
         if not member.get('annual_salary'):
             continue
-            
+
         monthly_salary = member['annual_salary'] / 12
-        
+
         # Parse start date
         start_date_str = member.get('start_date', f'{year}-01-01')
         try:
             start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         except:
             start_date = date(year, 1, 1)
-        
+
         # Parse end date if exists
         end_date = None
         if member.get('termination_date'):
@@ -39,64 +41,73 @@ def calculate_team_costs_monthly(team_members: List[Dict], year: int = 2026) -> 
                 end_date = datetime.strptime(member['termination_date'], '%Y-%m-%d').date()
             except:
                 pass
-        
+
         # Calculate active months
         for month in range(1, 13):
             month_date = date(year, month, 1)
-            
+
             # Check if employee is active this month
             if month_date.year == start_date.year and month_date.month < start_date.month:
                 continue
             if end_date and month_date > end_date:
                 continue
-            
+
             # Base salary
             cost = monthly_salary
-            
-            # Add burdens
+
+            # Add burdens (matches Excel formula exactly)
             if member.get('employment_type') == 'Contractor (1099)':
-                # No burdens for contractors
+                # No burdens for 1099 contractors
                 pass
             else:
                 # W2 employees get burdens
                 if month >= rippling['start_month']:
                     # Rippling PEO starts in May
-                    cost += rippling['rippling']  # $137/month
-                    cost += rippling['healthcare']  # $697.91/month
-                    cost += rippling['futa']  # $3.50/month
-                    cost += monthly_salary * rippling['medicare']  # 1.45%
+                    cost += rippling['rippling']      # $137/month
+                    cost += rippling['healthcare']     # $697.91/month
+                    cost += rippling['futa']           # $3.50/month
+                    cost += monthly_salary * rippling['medicare']   # 1.45%
                     cost += monthly_salary * rippling['soc_secur']  # 6.2%
-                    cost += monthly_salary * rippling['ca_ett']  # 0.1% (CA only)
+                    cost += monthly_salary * rippling['ca_ett']     # 0.1%
                 else:
-                    # Pre-Rippling (simplified burdens)
-                    cost += monthly_salary * 0.10  # Benefits 10%
-                    cost += monthly_salary * 0.08  # Payroll taxes 8%
-                    cost += monthly_salary * 0.005  # Processing 0.5%
-            
+                    # Pre-Rippling: flat 18.5% burden rate
+                    cost += monthly_salary * pre_rippling_rate
+
             monthly_costs[month] += cost
-    
+
     return monthly_costs
 
 
 def calculate_opex_monthly(opex_expenses: List[Dict], year: int = 2026) -> Dict[int, float]:
     """
-    Calculate monthly OpEx costs
-    
+    Calculate monthly OpEx costs.
+    Supports 'Custom Monthly' items with per-month values (from Matt Econ Roadmap)
+    as well as Monthly, Quarterly, Annual, and One-Time frequencies.
+
     Returns: Dict of {month: total_cost}
     """
     monthly_costs = {month: 0.0 for month in range(1, 13)}
-    
+
     for expense in opex_expenses:
         frequency = expense.get('frequency', 'Monthly')
+
+        # Custom Monthly: each month has its own value (from baseline_data)
+        if frequency == 'Custom Monthly':
+            monthly_vals = expense.get('monthly_values', [])
+            for month in range(1, 13):
+                if month - 1 < len(monthly_vals):
+                    monthly_costs[month] += monthly_vals[month - 1]
+            continue
+
         amount = expense.get('monthly_amount', 0) or expense.get('annual_cost', 0) / 12
-        
+
         # Parse start date
         start_date_str = expense.get('start_date', f'{year}-01-01')
         try:
             start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         except:
             start_date = date(year, 1, 1)
-        
+
         # Parse end date if exists
         end_date = None
         if expense.get('end_date'):
@@ -104,7 +115,7 @@ def calculate_opex_monthly(opex_expenses: List[Dict], year: int = 2026) -> Dict[
                 end_date = datetime.strptime(expense['end_date'], '%Y-%m-%d').date()
             except:
                 pass
-        
+
         # Allocate to months based on frequency
         if frequency == 'Monthly':
             for month in range(1, 13):
@@ -112,29 +123,26 @@ def calculate_opex_monthly(opex_expenses: List[Dict], year: int = 2026) -> Dict[
                 if month_date.year == start_date.year and month_date.month >= start_date.month:
                     if not end_date or month_date <= end_date:
                         monthly_costs[month] += amount
-        
+
         elif frequency == 'Quarterly':
-            # Allocate in months 3, 6, 9, 12
             for month in [3, 6, 9, 12]:
                 month_date = date(year, month, 1)
                 if month_date >= start_date:
                     if not end_date or month_date <= end_date:
                         monthly_costs[month] += amount * 3
-        
+
         elif frequency == 'Annual':
-            # Allocate full amount in December or spread evenly
             annual_amount = expense.get('annual_cost', amount * 12)
             for month in range(1, 13):
                 month_date = date(year, month, 1)
                 if month_date >= start_date:
                     if not end_date or month_date <= end_date:
                         monthly_costs[month] += annual_amount / 12
-        
+
         elif frequency == 'One-Time':
-            # Allocate in start month
             if start_date.year == year:
                 monthly_costs[start_date.month] += amount
-    
+
     return monthly_costs
 
 

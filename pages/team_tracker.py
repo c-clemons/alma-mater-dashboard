@@ -45,7 +45,7 @@ def show():
     st.markdown('<div class="sub-header">Manage team members, salaries, and payroll costs</div>', unsafe_allow_html=True)
     
     # Info about baseline
-    st.info("📋 **Baseline Team:** 7 members hard-coded (Ryan, Jenny, Michele, Sukhjit, Nathan, Jay, Marty). You can add custom members below.")
+    st.info("📋 **Baseline Team:** 9 members (Ryan, Jenny, Michele, Sukhjit, Marty, Chandler, Beth, Nathan, Jay). You can add custom members below.")
     
     initialize_team()
     

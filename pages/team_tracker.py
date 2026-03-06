@@ -21,9 +21,9 @@ def add_team_member(member):
 
 def calculate_total_cost(salary, assumptions):
     """Calculate total cost including burdens"""
-    benefits = salary * assumptions['benefits_pct']
-    taxes = salary * assumptions['payroll_taxes_pct']
-    processing = salary * assumptions['processing_pct']
+    benefits = salary * assumptions.get('benefits_pct', 0.10)
+    taxes = salary * assumptions.get('payroll_taxes_pct', 0.08)
+    processing = salary * assumptions.get('processing_pct', 0.005)
     
     total_burden = benefits + taxes + processing
     total_cost = salary + total_burden

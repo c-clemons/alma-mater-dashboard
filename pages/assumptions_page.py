@@ -7,37 +7,40 @@ import streamlit as st
 import json
 
 
+DEFAULTS = {
+    # Revenue assumptions
+    'beta_aov': 250,
+    'alpha_aov': 450,
+    'gamma_aov': 188,
+    'dtc_discount_pct': 0.10,
+    'dtc_returns_pct': 0.20,
+    'apply_returns_year': 2027,
+    # COGS assumptions
+    'cogs_product_pct': 0.25,
+    'cogs_warehousing_pct': 0.06,
+    'cogs_freight_pct': 0.06,
+    'cogs_merchant_pct': 0.03,
+    # Team burdens
+    'benefits_pct': 0.10,
+    'payroll_taxes_pct': 0.08,
+    'processing_pct': 0.005,
+    # CAC and Marketing
+    'cac_improvement_rate': 0.15,
+    'cac_floor': 30,
+    # Starting values
+    'starting_cash_2026': 93412,
+}
+
+
 def initialize_assumptions():
-    """Initialize model assumptions in session state"""
-    
+    """Initialize model assumptions in session state, merging defaults with any saved data."""
     if 'assumptions' not in st.session_state:
-        st.session_state.assumptions = {
-            # Revenue assumptions
-            'beta_aov': 250,
-            'alpha_aov': 450,
-            'gamma_aov': 188,
-            'dtc_discount_pct': 0.10,
-            'dtc_returns_pct': 0.20,
-            'apply_returns_year': 2027,
-            
-            # COGS assumptions
-            'cogs_product_pct': 0.25,
-            'cogs_warehousing_pct': 0.06,
-            'cogs_freight_pct': 0.06,
-            'cogs_merchant_pct': 0.03,
-            
-            # Team burdens
-            'benefits_pct': 0.10,
-            'payroll_taxes_pct': 0.08,
-            'processing_pct': 0.005,
-            
-            # CAC and Marketing
-            'cac_improvement_rate': 0.15,
-            'cac_floor': 30,
-            
-            # Starting values
-            'starting_cash_2026': 93412,
-        }
+        st.session_state.assumptions = DEFAULTS.copy()
+    else:
+        # Ensure all default keys exist (handles old persisted files missing newer keys)
+        for key, val in DEFAULTS.items():
+            if key not in st.session_state.assumptions:
+                st.session_state.assumptions[key] = val
 
 
 def save_assumptions():

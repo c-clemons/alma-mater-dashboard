@@ -113,14 +113,18 @@ def generate_pdf_report():
     # Determine which year's actuals to use for the "last month" section
     if actuals_rows_26 and report_yr == 2026:
         last_mo_idx = report_mo - 1
-        prior_mo_idx = last_mo_idx - 1
         current_row = actuals_rows_26[last_mo_idx]
-        prior_row = actuals_rows_26[prior_mo_idx] if prior_mo_idx >= 0 else None
+        if last_mo_idx > 0:
+            prior_row = actuals_rows_26[last_mo_idx - 1]
+        elif actuals_rows_25:
+            # Jan 2026 → prior month is Dec 2025
+            prior_row = actuals_rows_25[11]
+        else:
+            prior_row = None
     elif actuals_rows_25 and report_yr == 2025:
         last_mo_idx = report_mo - 1
-        prior_mo_idx = last_mo_idx - 1
         current_row = actuals_rows_25[last_mo_idx]
-        prior_row = actuals_rows_25[prior_mo_idx] if prior_mo_idx >= 0 else None
+        prior_row = actuals_rows_25[last_mo_idx - 1] if last_mo_idx > 0 else None
     else:
         current_row = None
         prior_row = None

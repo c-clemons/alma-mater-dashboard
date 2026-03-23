@@ -349,7 +349,7 @@ BASELINE_FUNDRAISING = [
     {
         'name': 'Seed / SAFE Round',
         'amount': 500000.0,
-        'month': 6,
+        'month': 3,
         'year': 2026,
         'status': 'Projected',
         'notes': 'Target seed round',

@@ -227,20 +227,28 @@ def show():
         # Calculate proper monthly burn from projections
         monthly_df = generate_monthly_pl(**pl_kwargs)
         
+        # Include fundraising in available cash for Days of Cash
+        fundraising_rounds = st.session_state.get('fundraising_rounds', [])
+        total_funding = sum(
+            r.get('amount', 0) for r in (fundraising_rounds or [])
+            if r.get('year', 0) == 2026 and r.get('amount', 0) > 0
+        )
+        cash_with_funding = net_cash + total_funding
+
         # Calculate ACTUAL burn rate from first 3 months (before wholesale kick in)
         first_three_months = monthly_df.head(3)
         avg_monthly_revenue = first_three_months['Total Revenue'].mean()
         avg_monthly_cogs = first_three_months['Total COGS'].mean()
         avg_monthly_opex = first_three_months['Total OpEx'].mean()
-        
+
         # Net monthly burn = (COGS + OpEx) - Revenue
         monthly_cash_out = avg_monthly_cogs + avg_monthly_opex
         monthly_cash_in = avg_monthly_revenue
         net_monthly_burn = monthly_cash_out - monthly_cash_in
-        
+
         if net_monthly_burn > 0:
             daily_burn = net_monthly_burn / 30
-            days_of_cash = net_cash / daily_burn if daily_burn > 0 else 999
+            days_of_cash = cash_with_funding / daily_burn if daily_burn > 0 else 999
             st.metric(
                 "Days of Cash",
                 f"{days_of_cash:.0f} days",
@@ -450,45 +458,6 @@ def show():
         file_name=f"alma_mater_cash_flow_{datetime.now().strftime('%Y%m%d')}.csv",
         mime="text/csv"
     )
-    
-    st.divider()
-    
-    # --- KEY INSIGHTS ---
-    st.markdown("### Key Insights")
-    
-    # Find cash-out month
-    cash_out_month = None
-    for idx, row in runway_df.iterrows():
-        if row['Ending Cash'] < 0:
-            cash_out_month = row['Month']
-            break
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        if cash_out_month:
-            st.error(f"⚠️ **Cash Depletion Alert:** Projected to run out of cash in **{cash_out_month} 2026** without additional funding.")
-        else:
-            st.success("✅ **Cash Positive:** Projected to maintain positive cash through 2026!")
-        
-        # Calculate total funding need
-        min_cash = runway_df['Ending Cash'].min()
-        if min_cash < 0:
-            funding_need = abs(min_cash)
-            st.warning(f"💰 **Funding Recommendation:** Raise at least **${funding_need:,.0f}** to cover 2026 operations.")
-    
-    with col2:
-        # Breakeven analysis
-        breakeven_month = None
-        for idx, row in runway_df.iterrows():
-            if row['Net Cash Flow'] >= 0:
-                breakeven_month = row['Month']
-                break
-        
-        if breakeven_month:
-            st.info(f"📈 **Cash Flow Positive:** First positive month projected in **{breakeven_month} 2026**")
-        else:
-            st.warning("📉 **Not Cash Positive:** No positive cash flow months projected in 2026")
     
     st.divider()
 

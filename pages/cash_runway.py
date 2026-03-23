@@ -8,6 +8,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime, date
+from typing import Dict
 from dateutil.relativedelta import relativedelta
 import sys
 from pathlib import Path
@@ -19,63 +20,87 @@ sys.path.insert(0, str(parent_dir))
 from financial_calcs import generate_monthly_pl
 
 
+def get_monthly_funding(fundraising_rounds: list, year: int = 2026) -> Dict[int, float]:
+    """Calculate monthly funding inflows from fundraising rounds for a given year."""
+    monthly = {m: 0.0 for m in range(1, 13)}
+    for rnd in (fundraising_rounds or []):
+        rnd_year = rnd.get('year', 0)
+        rnd_month = rnd.get('month', 0)
+        amount = rnd.get('amount', 0)
+        if rnd_year == year and 1 <= rnd_month <= 12 and amount > 0:
+            monthly[rnd_month] += amount
+    return monthly
+
+
 def calculate_cash_runway(
     starting_cash: float,
     current_ap: float,
     current_ar: float,
-    monthly_pl_df: pd.DataFrame
+    monthly_pl_df: pd.DataFrame,
+    fundraising_rounds: list = None,
+    year: int = 2026
 ) -> pd.DataFrame:
     """
     Calculate month-by-month cash runway
-    
+
     Returns DataFrame with columns: Month, Revenue, OpEx, Net Cash Flow, Ending Cash, Days of Cash
     """
     # Starting position
     current_cash_assets = starting_cash + current_ar
     current_liabilities = current_ap
     net_cash = current_cash_assets - current_liabilities
-    
+
+    # Get monthly funding
+    monthly_funding = get_monthly_funding(fundraising_rounds, year)
+
     runway_data = []
     cumulative_cash = net_cash
-    
+    cumulative_cash_no_fund = net_cash
+
     for idx, row in monthly_pl_df.iterrows():
+        month_num = idx + 1
         month_name = row['Month']
         revenue = row['Total Revenue']
         cogs = row['Total COGS']
         opex = row['Total OpEx']
-        
-        # Cash inflow (revenue - assume cash collection)
-        cash_in = revenue
-        
+        funding = monthly_funding.get(month_num, 0)
+
+        # Cash inflow (revenue + funding)
+        cash_in = revenue + funding
+
         # Cash outflow (COGS + OpEx)
         cash_out = cogs + opex
-        
+
         # Net cash flow
         net_flow = cash_in - cash_out
-        
+        net_flow_no_fund = (revenue - cash_out)
+
         # Update cumulative cash
         cumulative_cash += net_flow
-        
-        # Calculate monthly burn rate (negative net flow)
-        burn_rate = -net_flow if net_flow < 0 else 0
-        
+        cumulative_cash_no_fund += net_flow_no_fund
+
+        # Calculate monthly burn rate (negative net flow, excluding funding)
+        burn_rate = -net_flow_no_fund if net_flow_no_fund < 0 else 0
+
         # Days of cash (if burning)
         if burn_rate > 0:
             daily_burn = burn_rate / 30
             days_of_cash = cumulative_cash / daily_burn if daily_burn > 0 else 999
         else:
             days_of_cash = 999  # Not burning
-        
+
         runway_data.append({
             'Month': month_name,
             'Cash Inflow': cash_in,
+            'Funding': funding,
             'Cash Outflow': cash_out,
             'Net Cash Flow': net_flow,
             'Ending Cash': cumulative_cash,
+            'Ending Cash (No Funding)': cumulative_cash_no_fund,
             'Monthly Burn Rate': burn_rate,
             'Days of Cash': min(days_of_cash, 999)
         })
-    
+
     return pd.DataFrame(runway_data)
 
 
@@ -119,12 +144,14 @@ def show():
         )
     
     with col3:
+        # Use QBO AP if available
+        default_ap = qbo.get('latest_ap', 8414.0) if qbo else 8414.0
         current_ap = st.number_input(
             "Open Accounts Payable ($)",
             min_value=0.0,
-            value=8414.0,  # From client screenshot ($18K payroll - but only $8,414 shown in AP)
+            value=default_ap,
             step=100.0,
-            help="Money you owe to vendors/employees"
+            help="Money you owe to vendors/employees (auto-populated from QBO if imported)"
         )
     
     # Calculate net cash position
@@ -189,12 +216,17 @@ def show():
     # --- RUNWAY PROJECTION ---
     st.markdown("## 2026 Cash Runway Projection")
     
+    # Get fundraising rounds
+    fundraising_rounds = st.session_state.get('fundraising_rounds', [])
+
     # Calculate runway
     runway_df = calculate_cash_runway(
         starting_cash=starting_cash,
         current_ap=current_ap,
         current_ar=current_ar,
-        monthly_pl_df=monthly_df
+        monthly_pl_df=monthly_df,
+        fundraising_rounds=fundraising_rounds,
+        year=2026
     )
     
     # --- BURN BREAKDOWN ---
@@ -281,11 +313,11 @@ def show():
         row_heights=[0.6, 0.4]
     )
     
-    # Cash balance line
+    # Cash balance line (with funding)
     colors_cash = ['#00BA38' if x >= 0 else '#F8766D' for x in runway_df['Ending Cash']]
     fig_cash.add_trace(
         go.Scatter(
-            name='Ending Cash',
+            name='With Funding',
             x=runway_df['Month'],
             y=runway_df['Ending Cash'],
             mode='lines+markers',
@@ -295,6 +327,20 @@ def show():
         ),
         row=1, col=1
     )
+
+    # Cash balance line (without funding) - dashed
+    if runway_df['Funding'].sum() > 0:
+        fig_cash.add_trace(
+            go.Scatter(
+                name='Without Funding',
+                x=runway_df['Month'],
+                y=runway_df['Ending Cash (No Funding)'],
+                mode='lines+markers',
+                line=dict(color='#E63946', width=2, dash='dash'),
+                marker=dict(size=6),
+            ),
+            row=1, col=1
+        )
     
     # Zero line
     fig_cash.add_hline(y=0, line_dash="dash", line_color="red", row=1, col=1)
@@ -310,7 +356,7 @@ def show():
         row=2, col=1
     )
     
-    fig_cash.update_layout(height=700, showlegend=False)
+    fig_cash.update_layout(height=700, showlegend=True)
     fig_cash.update_yaxes(title_text="Cash Balance ($)", row=1, col=1)
     fig_cash.update_yaxes(title_text="Burn Rate ($)", row=2, col=1)
     
@@ -323,7 +369,7 @@ def show():
     
     # Format for display
     display_df = runway_df.copy()
-    for col in ['Cash Inflow', 'Cash Outflow', 'Net Cash Flow', 'Ending Cash', 'Monthly Burn Rate']:
+    for col in ['Cash Inflow', 'Funding', 'Cash Outflow', 'Net Cash Flow', 'Ending Cash', 'Ending Cash (No Funding)', 'Monthly Burn Rate']:
         display_df[col] = display_df[col].apply(lambda x: f"${x:,.0f}")
     display_df['Days of Cash'] = display_df['Days of Cash'].apply(lambda x: f"{x:.0f}" if x < 999 else "∞")
     
@@ -378,26 +424,15 @@ def show():
             st.warning("📉 **Not Cash Positive:** No positive cash flow months projected in 2026")
     
     st.divider()
-    
-    # --- AP BREAKDOWN (From Client's Spreadsheet) ---
-    st.markdown("### Current Accounts Payable Breakdown")
-    
-    st.info("💡 **Tip:** Update this based on your current AP aging report")
-    
-    ap_breakdown = {
-        'Payee': ['Michele', 'Marty', 'Irwin', 'Ryan', 'Jenny', 'Beth', 'Chandler', 'Spencer'],
-        'Amount': [2000, 4000, 2500, 4500, 3000, 1000, 1000, 1000]
-    }
-    
-    ap_df = pd.DataFrame(ap_breakdown)
-    ap_df['Amount'] = ap_df['Amount'].apply(lambda x: f"${x:,.0f}")
-    
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        st.dataframe(ap_df, use_container_width=True, hide_index=True)
-    
-    with col2:
-        total_ap_shown = 18000  # From client screenshot
-        st.metric("Total AP", f"${total_ap_shown:,.0f}")
-        st.caption("Note: Input field above may differ if you've updated payroll")
+
+    # --- AP INFO ---
+    st.markdown("### Accounts Payable")
+    if qbo and qbo.get('latest_ap'):
+        from qbo_parser import MONTHS as QBO_MONTHS
+        lm = qbo.get('last_month', 0)
+        ly = qbo.get('last_year', 0)
+        st.metric("AP from QBO", f"${qbo['latest_ap']:,.2f}",
+                  delta=f"As of {QBO_MONTHS[lm-1]} {ly}")
+        st.caption("AP is auto-populated from your latest QBO import. You can override the value in the input above.")
+    else:
+        st.info("Upload a QBO file with a Balance Sheet tab to auto-populate AP.")

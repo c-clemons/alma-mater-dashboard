@@ -72,6 +72,15 @@ def init_session_state():
         if qbo_data:
             st.session_state.qbo_actuals = qbo_data
 
+    # Load fundraising rounds
+    if 'fundraising_rounds' not in st.session_state:
+        fundraising = store.load_fundraising()
+        if fundraising:
+            st.session_state.fundraising_rounds = fundraising
+        else:
+            from baseline_data import get_baseline_fundraising
+            st.session_state.fundraising_rounds = get_baseline_fundraising()
+
     # Auto-save flag
     if 'auto_save_enabled' not in st.session_state:
         st.session_state.auto_save_enabled = True
@@ -95,6 +104,9 @@ def auto_save_data():
         if 'assumptions' in st.session_state:
             store.save_assumptions(st.session_state.assumptions)
 
+        if 'fundraising_rounds' in st.session_state:
+            store.save_fundraising(st.session_state.fundraising_rounds)
+
 def main():
     """Main app"""
     
@@ -115,6 +127,7 @@ def main():
                 "Management Dashboard",
                 "Cash Flow & Runway",
                 "Monthly P&L Detail",
+                "Fundraising",
                 "QBO Import",
                 "Assumptions",
                 "Team Tracker",
@@ -164,6 +177,9 @@ def main():
     elif page == "Monthly P&L Detail":
         from pages import monthly_pl_detail
         monthly_pl_detail.show()
+    elif page == "Fundraising":
+        from pages import fundraising
+        fundraising.show()
     elif page == "QBO Import":
         from pages import qbo_import
         qbo_import.show()

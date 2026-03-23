@@ -41,8 +41,9 @@ QBO_PL_SEARCH = [
 # All standardized labels (preserves iteration order for build_actuals_dataframe)
 QBO_PL_LABELS = [label for _, label in QBO_PL_SEARCH]
 
-# QBO BS search for cash row
+# QBO BS search patterns
 QBO_BS_CASH_SEARCH = ["total bank accounts", "total for bank accounts"]
+QBO_BS_AP_SEARCH = ["total for accounts payable", "total accounts payable", "210000 accounts payable"]
 
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -151,6 +152,7 @@ def parse_qbo_file(file_bytes) -> Dict:
 
     # Extract BS data if available
     cash_data = {}
+    ap_data = {}
     if bs_name:
         bs_ws = wb[bs_name]
         bs_headers = parse_qbo_headers(bs_ws)
@@ -159,17 +161,25 @@ def parse_qbo_file(file_bytes) -> Dict:
             for (yr, mo), col in bs_headers.items():
                 val = bs_ws.cell(row=cash_row, column=col).value
                 cash_data[(yr, mo)] = float(val) if val is not None else 0.0
+        ap_row = _find_row_by_search(bs_ws, QBO_BS_AP_SEARCH)
+        if ap_row:
+            for (yr, mo), col in bs_headers.items():
+                val = bs_ws.cell(row=ap_row, column=col).value
+                ap_data[(yr, mo)] = float(val) if val is not None else 0.0
 
     # Determine last actuals month
     last_year, last_month = max(pl_headers.keys())
     latest_cash = cash_data.get((last_year, last_month), 0.0)
+    latest_ap = ap_data.get((last_year, last_month), 0.0)
 
     return {
         'pl_data': pl_data,
         'cash_data': cash_data,
+        'ap_data': ap_data,
         'last_year': last_year,
         'last_month': last_month,
         'latest_cash': latest_cash,
+        'latest_ap': latest_ap,
         'months_found': sorted(pl_headers.keys()),
     }
 
@@ -247,13 +257,16 @@ def serialize_qbo_data(parsed: Dict) -> Dict:
         pl_serialized[label] = {f"{yr}_{mo}": val for (yr, mo), val in month_data.items()}
 
     cash_serialized = {f"{yr}_{mo}": val for (yr, mo), val in parsed['cash_data'].items()}
+    ap_serialized = {f"{yr}_{mo}": val for (yr, mo), val in parsed.get('ap_data', {}).items()}
 
     return {
         'pl_data': pl_serialized,
         'cash_data': cash_serialized,
+        'ap_data': ap_serialized,
         'last_year': parsed['last_year'],
         'last_month': parsed['last_month'],
         'latest_cash': parsed['latest_cash'],
+        'latest_ap': parsed.get('latest_ap', 0.0),
         'months_found': [f"{yr}_{mo}" for yr, mo in parsed['months_found']],
     }
 
@@ -275,6 +288,11 @@ def deserialize_qbo_data(data: Dict) -> Dict:
         yr, mo = key.split('_')
         cash_data[(int(yr), int(mo))] = val
 
+    ap_data = {}
+    for key, val in data.get('ap_data', {}).items():
+        yr, mo = key.split('_')
+        ap_data[(int(yr), int(mo))] = val
+
     months_found = []
     for key in data.get('months_found', []):
         yr, mo = key.split('_')
@@ -283,8 +301,10 @@ def deserialize_qbo_data(data: Dict) -> Dict:
     return {
         'pl_data': pl_data,
         'cash_data': cash_data,
+        'ap_data': ap_data,
         'last_year': data.get('last_year', 2025),
         'last_month': data.get('last_month', 12),
         'latest_cash': data.get('latest_cash', 0),
+        'latest_ap': data.get('latest_ap', 0),
         'months_found': months_found,
     }

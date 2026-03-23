@@ -341,6 +341,27 @@ BASELINE_WHOLESALE = [
 ]
 
 
+# ============================================================
+# BASELINE FUNDRAISING ROUNDS
+# Matches Excel model Assumptions tab (rows 58-60)
+# ============================================================
+BASELINE_FUNDRAISING = [
+    {
+        'name': 'Seed / SAFE Round',
+        'amount': 500000.0,
+        'month': 6,
+        'year': 2026,
+        'status': 'Projected',
+        'notes': 'Target seed round',
+    },
+]
+
+
+def get_baseline_fundraising():
+    """Get baseline fundraising rounds"""
+    return [r.copy() for r in BASELINE_FUNDRAISING]
+
+
 def get_baseline_team():
     """Get baseline team members"""
     return [m.copy() for m in BASELINE_TEAM]

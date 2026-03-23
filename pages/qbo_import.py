@@ -59,7 +59,7 @@ def show():
             st.success(f"File parsed successfully.")
 
             # Show summary
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.metric("Months Found", len(parsed['months_found']))
             with col2:
@@ -68,6 +68,8 @@ def show():
                 st.metric("Latest Month", f"{MONTHS[last_mo - 1]} {last_yr}")
             with col3:
                 st.metric("Cash Balance", f"${parsed['latest_cash']:,.2f}")
+            with col4:
+                st.metric("Accounts Payable", f"${parsed.get('latest_ap', 0):,.2f}")
 
             st.divider()
 

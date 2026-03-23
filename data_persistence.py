@@ -28,6 +28,7 @@ class DataStore:
         self.wholesale_file = os.path.join(data_dir, "custom_wholesale_deals.json")
         self.assumptions_file = os.path.join(data_dir, "model_assumptions.json")
         self.qbo_file = os.path.join(data_dir, "qbo_actuals.json")
+        self.fundraising_file = os.path.join(data_dir, "fundraising_rounds.json")
     
     def ensure_data_dir(self):
         """Create data directory if it doesn't exist"""
@@ -182,10 +183,27 @@ class DataStore:
                 return data.get('qbo_actuals', {})
         return {}
 
+    # Fundraising
+    def save_fundraising(self, rounds: List[Dict[str, Any]]):
+        """Save fundraising rounds to file"""
+        with open(self.fundraising_file, 'w') as f:
+            json.dump({
+                'fundraising_rounds': rounds,
+                'last_updated': datetime.now().isoformat()
+            }, f, indent=2)
+
+    def load_fundraising(self) -> List[Dict[str, Any]]:
+        """Load fundraising rounds from file"""
+        if os.path.exists(self.fundraising_file):
+            with open(self.fundraising_file, 'r') as f:
+                data = json.load(f)
+                return data.get('fundraising_rounds', [])
+        return []
+
     # Utility
     def clear_all_data(self):
         """Clear all stored data (use with caution!)"""
-        for file_path in [self.team_file, self.opex_file, self.wholesale_file, self.assumptions_file, self.qbo_file]:
+        for file_path in [self.team_file, self.opex_file, self.wholesale_file, self.assumptions_file, self.qbo_file, self.fundraising_file]:
             if os.path.exists(file_path):
                 os.remove(file_path)
     

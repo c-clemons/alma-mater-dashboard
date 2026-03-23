@@ -66,11 +66,10 @@ def init_session_state():
         if loaded_assumptions:
             st.session_state.assumptions = loaded_assumptions
     
-    # Load QBO actuals
-    if 'qbo_actuals' not in st.session_state:
-        qbo_data = store.load_qbo_actuals()
-        if qbo_data:
-            st.session_state.qbo_actuals = qbo_data
+    # Load QBO actuals (always refresh from file to pick up new fields after deploys)
+    qbo_data = store.load_qbo_actuals()
+    if qbo_data:
+        st.session_state.qbo_actuals = qbo_data
 
     # Load fundraising rounds
     if 'fundraising_rounds' not in st.session_state:

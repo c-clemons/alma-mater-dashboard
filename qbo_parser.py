@@ -8,37 +8,41 @@ import openpyxl
 from typing import Dict, Tuple, Optional
 
 
-# QBO P&L row mapping (row number -> label)
-QBO_PL_ROWS = {
-    12: "DTC Revenue",
-    15: "Wholesale Revenue",
-    16: "Total Revenue",
-    24: "Total COGS",
-    25: "Gross Profit",
-    38: "Sales & Marketing",
-    41: "Payroll",
-    42: "Software",
-    47: "Professional Fees",
-    48: "Travel",
-    49: "Meals",
-    50: "Entertainment",
-    51: "Insurance",
-    52: "Office Furniture & Equipment",
-    53: "Office Supplies",
-    54: "Bank Fees",
-    57: "Rent & Lease",
-    58: "Utilities",
-    59: "Repairs & Maintenance",
-    60: "Job Supplies",
-    61: "Total Expenses",
-    62: "Net Operating Income",
-    64: "Depreciation",
-    65: "Other Income/(Expense)",
-    70: "Net Income",
-}
+# QBO P&L: search patterns -> standardized label
+# The parser searches column A for these patterns to find correct rows dynamically.
+QBO_PL_SEARCH = [
+    (["total for 401000", "total 401000 dtc", "total dtc"], "DTC Revenue"),
+    (["total for 402000", "total 402000 wholesale", "total wholesale"], "Wholesale Revenue"),
+    (["total for income", "total income"], "Total Revenue"),
+    (["total for cost of goods sold", "total cost of goods sold"], "Total COGS"),
+    (["gross profit"], "Gross Profit"),
+    (["total for 601000", "total 601000 sales"], "Sales & Marketing"),
+    (["total for 602000 payroll", "total for 603000 payroll", "602000 payroll", "603000 payroll"], "Payroll"),
+    (["603000 software", "602000 software"], "Software"),
+    (["total for 604000", "total 604000 professional"], "Professional Fees"),
+    (["605000 travel", "606000 travel"], "Travel"),
+    (["606000 meals", "605000 meals"], "Meals"),
+    (["607000 entertainment"], "Entertainment"),
+    (["608000 insurance", "609000 insurance"], "Insurance"),
+    (["609000 office furniture", "611000 office furniture"], "Office Furniture & Equipment"),
+    (["610000 office supplies", "612000 office supplies"], "Office Supplies"),
+    (["613000 bank", "608000 bank"], "Bank Fees"),
+    (["total for 614000", "614000 rent"], "Rent & Lease"),
+    (["617000 utilities", "615000 utilities"], "Utilities"),
+    (["618000 repairs", "616000 repairs"], "Repairs & Maintenance"),
+    (["paypal fees", "613000 job supplies", "job supplies"], "PayPal Fees / Other"),
+    (["total for expenses", "total expenses"], "Total Expenses"),
+    (["net operating income"], "Net Operating Income"),
+    (["810000 depreciation", "depreciation exp", "depreciation"], "Depreciation"),
+    (["900000 other", "other income", "total for other"], "Other Income/(Expense)"),
+    (["net income"], "Net Income"),
+]
 
-# QBO BS row for cash
-QBO_BS_CASH_ROW = 15  # "Total Bank Accounts"
+# All standardized labels (preserves iteration order for build_actuals_dataframe)
+QBO_PL_LABELS = [label for _, label in QBO_PL_SEARCH]
+
+# QBO BS search for cash row
+QBO_BS_CASH_SEARCH = ["total bank accounts", "total for bank accounts"]
 
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -73,6 +77,29 @@ def parse_qbo_headers(ws) -> Dict[Tuple[int, int], int]:
     return headers
 
 
+def _find_row_by_search(ws, search_terms, max_row=200):
+    """Find a row in column A matching any of the search terms (case-insensitive)."""
+    for r in range(1, max_row + 1):
+        val = ws.cell(row=r, column=1).value
+        if val is None:
+            continue
+        val_lower = str(val).strip().lower()
+        for term in search_terms:
+            if term in val_lower:
+                return r
+    return None
+
+
+def _build_pl_row_map(ws):
+    """Dynamically build QBO P&L row mapping by searching column A."""
+    row_map = {}  # {label: row_number}
+    for search_terms, label in QBO_PL_SEARCH:
+        row = _find_row_by_search(ws, search_terms)
+        if row:
+            row_map[label] = row
+    return row_map
+
+
 def parse_qbo_file(file_bytes) -> Dict:
     """
     Parse a QBO export file (uploaded via Streamlit file_uploader).
@@ -91,13 +118,14 @@ def parse_qbo_file(file_bytes) -> Dict:
     """
     wb = openpyxl.load_workbook(file_bytes, data_only=True)
 
-    # Find sheet names
+    # Find sheet names (handle "Profit and Loss" or "PL", "Balance Sheet" or "BS")
     pl_name = None
     bs_name = None
     for name in wb.sheetnames:
-        if "profit" in name.lower() and "loss" in name.lower():
+        nl = name.lower().strip()
+        if nl in ("pl", "p&l", "p & l") or ("profit" in nl and "loss" in nl):
             pl_name = name
-        if "balance" in name.lower() and "sheet" in name.lower():
+        if nl in ("bs",) or ("balance" in nl and "sheet" in nl):
             bs_name = name
 
     if not pl_name:
@@ -110,9 +138,12 @@ def parse_qbo_file(file_bytes) -> Dict:
     if not pl_headers:
         raise ValueError("Could not parse month headers from P&L sheet row 5")
 
+    # Dynamically find P&L rows by searching account names in column A
+    row_map = _build_pl_row_map(pl_ws)
+
     # Extract P&L data
     pl_data = {}
-    for qbo_row, label in QBO_PL_ROWS.items():
+    for label, qbo_row in row_map.items():
         pl_data[label] = {}
         for (yr, mo), col in pl_headers.items():
             val = pl_ws.cell(row=qbo_row, column=col).value
@@ -123,9 +154,11 @@ def parse_qbo_file(file_bytes) -> Dict:
     if bs_name:
         bs_ws = wb[bs_name]
         bs_headers = parse_qbo_headers(bs_ws)
-        for (yr, mo), col in bs_headers.items():
-            val = bs_ws.cell(row=QBO_BS_CASH_ROW, column=col).value
-            cash_data[(yr, mo)] = float(val) if val is not None else 0.0
+        cash_row = _find_row_by_search(bs_ws, QBO_BS_CASH_SEARCH)
+        if cash_row:
+            for (yr, mo), col in bs_headers.items():
+                val = bs_ws.cell(row=cash_row, column=col).value
+                cash_data[(yr, mo)] = float(val) if val is not None else 0.0
 
     # Determine last actuals month
     last_year, last_month = max(pl_headers.keys())
@@ -148,7 +181,7 @@ def build_actuals_dataframe(pl_data: Dict, year: int, max_month: int = 12) -> Di
     Returns dict with P&L line items as keys and lists of 12 monthly values.
     """
     result = {}
-    for label in QBO_PL_ROWS.values():
+    for label in QBO_PL_LABELS:
         monthly = []
         for mo in range(1, 13):
             if mo <= max_month:

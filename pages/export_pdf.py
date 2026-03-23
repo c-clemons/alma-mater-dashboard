@@ -144,9 +144,10 @@ def generate_pdf_report():
         if parsed_full:
             cash_data = parsed_full.get('cash_data', {})
 
-    # Team & wholesale from session
+    # Team, wholesale, fundraising from session
     team_members = st.session_state.get('team_members', [])
     wholesale_deals = st.session_state.get('wholesale_deals', [])
+    fundraising_rounds = st.session_state.get('fundraising_rounds', [])
 
     # ------------------------------------------------------------------
     # Styles
@@ -509,7 +510,16 @@ def generate_pdf_report():
     # --- Runway Projection ---
     story.append(Paragraph("Cash Runway Projection", section_style))
 
-    runway_header = ['Month', 'Revenue', 'COGS + OpEx', 'Net Flow', 'Projected Cash']
+    # Get monthly funding from fundraising rounds
+    from pages.cash_runway import get_monthly_funding
+    fundraising_rounds_for_runway = st.session_state.get('fundraising_rounds', [])
+    monthly_funding = get_monthly_funding(fundraising_rounds_for_runway, 2026)
+    has_funding = sum(monthly_funding.values()) > 0
+
+    if has_funding:
+        runway_header = ['Month', 'Revenue', 'Funding', 'COGS + OpEx', 'Net Flow', 'Cash']
+    else:
+        runway_header = ['Month', 'Revenue', 'COGS + OpEx', 'Net Flow', 'Cash']
     runway_data = [runway_header]
 
     starting_cash_val = latest_cash if latest_cash > 0 else st.session_state.get(
@@ -520,21 +530,34 @@ def generate_pdf_report():
 
     for idx in range(start_idx, 12):
         row = forecast_df.iloc[idx]
-        net = row['Total Revenue'] - row['Total COGS'] - row['Total OpEx']
+        month_num = idx + 1
+        funding = monthly_funding.get(month_num, 0)
+        net = row['Total Revenue'] + funding - row['Total COGS'] - row['Total OpEx']
         cumulative += net
-        runway_data.append([
-            row['Month'],
-            _fmt(row['Total Revenue']),
-            _fmt(row['Total COGS'] + row['Total OpEx']),
-            _fmt(net),
-            _fmt(cumulative),
-        ])
+        if has_funding:
+            runway_data.append([
+                row['Month'],
+                _fmt(row['Total Revenue']),
+                _fmt(funding) if funding > 0 else '-',
+                _fmt(row['Total COGS'] + row['Total OpEx']),
+                _fmt(net),
+                _fmt(cumulative),
+            ])
+        else:
+            runway_data.append([
+                row['Month'],
+                _fmt(row['Total Revenue']),
+                _fmt(row['Total COGS'] + row['Total OpEx']),
+                _fmt(net),
+                _fmt(cumulative),
+            ])
 
     if len(runway_data) > 1:
-        rw_tbl = Table(
-            runway_data,
-            colWidths=[1.0*inch, 1.2*inch, 1.3*inch, 1.2*inch, 1.3*inch],
-        )
+        if has_funding:
+            col_widths = [0.8*inch, 1.0*inch, 0.9*inch, 1.1*inch, 1.0*inch, 1.1*inch]
+        else:
+            col_widths = [1.0*inch, 1.2*inch, 1.3*inch, 1.2*inch, 1.3*inch]
+        rw_tbl = Table(runway_data, colWidths=col_widths)
         rw_tbl.setStyle(_table_style())
         story.append(rw_tbl)
 
@@ -542,13 +565,15 @@ def generate_pdf_report():
 
     # --- AP / AR ---
     story.append(Paragraph("Accounts Payable & Receivable", section_style))
+
+    ap_val = qbo_raw.get('latest_ap', 0) if qbo_raw else 0
+    ar_val = 0.0
+    ap_source = f"from QBO ({report_label})" if (qbo_raw and ap_val) else "not available from QBO"
+
     story.append(Paragraph(
-        "Note: AP/AR detail is manually tracked. Update values on the Cash Flow page.",
+        f"AP {ap_source}. AR manually tracked — update on the Cash Flow page.",
         small_style,
     ))
-
-    ap_val = 8414.0  # Default from cash_runway.py
-    ar_val = 0.0
 
     apar_data = [
         ['Item', 'Balance'],
@@ -562,13 +587,54 @@ def generate_pdf_report():
 
     story.append(Spacer(1, 0.2 * inch))
 
-    # --- Financing Activities ---
-    story.append(Paragraph("Financing Activities", section_style))
-    story.append(Paragraph(
-        "No new financing activities to report. Update this section manually "
-        "when equity raises, debt issuances, or line-of-credit draws occur.",
-        body_style,
-    ))
+    # --- Fundraising / Financing Activities ---
+    story.append(Paragraph("Fundraising & Financing", section_style))
+
+    fundraising_rounds = st.session_state.get('fundraising_rounds', [])
+    assumptions = st.session_state.get('assumptions', {})
+    safe_raised = assumptions.get('safe_notes_raised', 308000.0)
+
+    if fundraising_rounds:
+        fund_data = [['Round', 'Amount', 'Timing', 'Status']]
+        total_planned = 0
+        for rnd in fundraising_rounds:
+            amt = rnd.get('amount', 0)
+            mo = rnd.get('month', 1)
+            yr = rnd.get('year', 2026)
+            fund_data.append([
+                rnd.get('name', ''),
+                _fmt(amt),
+                f"{MONTHS[mo - 1]} {yr}",
+                rnd.get('status', 'TBD'),
+            ])
+            total_planned += amt
+        fund_data.append(['Total Planned', _fmt(total_planned), '', ''])
+
+        fund_tbl = Table(fund_data, colWidths=[2.0*inch, 1.3*inch, 1.2*inch, 1.0*inch])
+        ts = _table_style()
+        fund_tbl.setStyle(ts)
+        for cmd in _highlight_row_style(len(fund_data) - 1):
+            fund_tbl.setStyle(TableStyle([cmd]))
+        story.append(fund_tbl)
+        story.append(Spacer(1, 0.1 * inch))
+
+        prior_data = [
+            ['Prior Capital', 'Amount'],
+            ['SAFE Notes Raised', _fmt(safe_raised)],
+            ['Total Capital (Raised + Planned)', _fmt(safe_raised + total_planned)],
+        ]
+        prior_tbl = Table(prior_data, colWidths=[3.0*inch, 2.5*inch])
+        prior_tbl.setStyle(_table_style())
+        for cmd in _highlight_row_style(2):
+            prior_tbl.setStyle(TableStyle([cmd]))
+        story.append(prior_tbl)
+    else:
+        story.append(Paragraph(
+            f"SAFE Notes Raised: {_fmt(safe_raised)}. "
+            "No additional fundraising rounds planned. "
+            "Add rounds on the Fundraising page.",
+            body_style,
+        ))
 
     story.append(PageBreak())
 
@@ -758,9 +824,9 @@ def show():
 
 **Page 3 - Cash Flow & Balance Sheet**
 - Historical cash balances from QBO Balance Sheet
-- Forward cash runway projection
-- Accounts payable and receivable
-- Financing activities
+- Forward cash runway projection (includes fundraising events)
+- Accounts payable (auto-populated from QBO) and receivable
+- Fundraising schedule with amounts, timing, and status
 
 **Page 4 - Operational Metrics**
 - Revenue mix (DTC vs Wholesale) with percentages

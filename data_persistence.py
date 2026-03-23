@@ -29,6 +29,7 @@ class DataStore:
         self.assumptions_file = os.path.join(data_dir, "model_assumptions.json")
         self.qbo_file = os.path.join(data_dir, "qbo_actuals.json")
         self.fundraising_file = os.path.join(data_dir, "fundraising_rounds.json")
+        self.po_file = os.path.join(data_dir, "po_data.json")
     
     def ensure_data_dir(self):
         """Create data directory if it doesn't exist"""
@@ -200,10 +201,27 @@ class DataStore:
                 return data.get('fundraising_rounds', [])
         return []
 
+    # Purchase Orders
+    def save_po_data(self, po_list: List[Dict[str, Any]]):
+        """Save purchase order data to file"""
+        with open(self.po_file, 'w') as f:
+            json.dump({
+                'po_data': po_list,
+                'last_updated': datetime.now().isoformat()
+            }, f, indent=2)
+
+    def load_po_data(self) -> List[Dict[str, Any]]:
+        """Load purchase order data from file"""
+        if os.path.exists(self.po_file):
+            with open(self.po_file, 'r') as f:
+                data = json.load(f)
+                return data.get('po_data', [])
+        return []
+
     # Utility
     def clear_all_data(self):
         """Clear all stored data (use with caution!)"""
-        for file_path in [self.team_file, self.opex_file, self.wholesale_file, self.assumptions_file, self.qbo_file, self.fundraising_file]:
+        for file_path in [self.team_file, self.opex_file, self.wholesale_file, self.assumptions_file, self.qbo_file, self.fundraising_file, self.po_file]:
             if os.path.exists(file_path):
                 os.remove(file_path)
     

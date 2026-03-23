@@ -362,6 +362,45 @@ def get_baseline_fundraising():
     return [r.copy() for r in BASELINE_FUNDRAISING]
 
 
+# ============================================================
+# BASELINE PURCHASE ORDERS & INVENTORY CONFIG
+# Matches Excel model Assumptions tab PO section
+# ============================================================
+BASELINE_PO_DATA = [
+    {"name": "Summer 2026 (Beta)", "product": "Beta", "pairs": 2000, "amount": 90000, "order_month": 2, "order_year": 2026},
+    {"name": "Summer 2026 (Alpha)", "product": "Alpha", "pairs": 1000, "amount": 55000, "order_month": 2, "order_year": 2026},
+    {"name": "Fall 2026 (Beta)", "product": "Beta", "pairs": 2000, "amount": 90000, "order_month": 4, "order_year": 2026},
+    {"name": "Fall 2026 (Alpha)", "product": "Alpha", "pairs": 1000, "amount": 55000, "order_month": 4, "order_year": 2026},
+    {"name": "Holiday 2026 (Beta)", "product": "Beta", "pairs": 1500, "amount": 67500, "order_month": 6, "order_year": 2026},
+    {"name": "Holiday 2026 (Alpha)", "product": "Alpha", "pairs": 500, "amount": 27500, "order_month": 6, "order_year": 2026},
+    {"name": "Spring 2027 (Beta)", "product": "Beta", "pairs": 3000, "amount": 135000, "order_month": 8, "order_year": 2026},
+    {"name": "Spring 2027 (Alpha)", "product": "Alpha", "pairs": 2000, "amount": 110000, "order_month": 8, "order_year": 2026},
+    {"name": "Summer 2027 (Beta)", "product": "Beta", "pairs": 4000, "amount": 180000, "order_month": 11, "order_year": 2026},
+    {"name": "Summer 2027 (Alpha)", "product": "Alpha", "pairs": 2000, "amount": 110000, "order_month": 11, "order_year": 2026},
+    {"name": "Fall 2027 (Beta)", "product": "Beta", "pairs": 4000, "amount": 180000, "order_month": 2, "order_year": 2027},
+    {"name": "Fall 2027 (Alpha)", "product": "Alpha", "pairs": 3000, "amount": 165000, "order_month": 2, "order_year": 2027},
+    {"name": "Holiday 2027 (Beta)", "product": "Beta", "pairs": 3000, "amount": 135000, "order_month": 5, "order_year": 2027},
+    {"name": "Holiday 2027 (Alpha)", "product": "Alpha", "pairs": 2000, "amount": 110000, "order_month": 5, "order_year": 2027},
+]
+
+BASELINE_INVENTORY_CONFIG = {
+    "lead_time_months": 4,
+    "payment_terms_months": 5,
+    "beg_inv_beta": 2500,
+    "beg_inv_alpha": 500,
+}
+
+
+def get_baseline_po_data():
+    """Get baseline purchase orders"""
+    return [d.copy() for d in BASELINE_PO_DATA]
+
+
+def get_baseline_inventory_config():
+    """Get baseline inventory configuration"""
+    return BASELINE_INVENTORY_CONFIG.copy()
+
+
 def get_baseline_team():
     """Get baseline team members"""
     return [m.copy() for m in BASELINE_TEAM]

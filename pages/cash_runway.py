@@ -17,7 +17,13 @@ from pathlib import Path
 parent_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(parent_dir))
 
-from financial_calcs import generate_monthly_pl
+from financial_calcs import (
+    generate_monthly_pl,
+    calculate_po_payments,
+    calculate_inventory_balance,
+    calculate_constrained_dtc_revenue,
+    get_dtc_demand_units,
+)
 
 
 def get_monthly_funding(fundraising_rounds: list, year: int = 2026) -> Dict[int, float]:
@@ -38,12 +44,18 @@ def calculate_cash_runway(
     current_ar: float,
     monthly_pl_df: pd.DataFrame,
     fundraising_rounds: list = None,
-    year: int = 2026
+    year: int = 2026,
+    po_payments: Dict[int, float] = None,
+    fulfillment_cogs: Dict[int, float] = None,
 ) -> pd.DataFrame:
     """
-    Calculate month-by-month cash runway
+    Calculate month-by-month cash runway.
 
-    Returns DataFrame with columns: Month, Revenue, OpEx, Net Cash Flow, Ending Cash, Days of Cash
+    When po_payments and fulfillment_cogs are provided, cash outflow uses
+    the inventory-aware COGS split instead of the P&L COGS column:
+      Cash COGS = po_payments[month] + fulfillment_cogs[month] + ws_cogs[month]
+
+    Returns DataFrame with monthly cash flow detail.
     """
     # Starting position
     current_cash_assets = starting_cash + current_ar
@@ -53,6 +65,8 @@ def calculate_cash_runway(
     # Get monthly funding
     monthly_funding = get_monthly_funding(fundraising_rounds, year)
 
+    use_inv_split = po_payments is not None and fulfillment_cogs is not None
+
     runway_data = []
     cumulative_cash = net_cash
     cumulative_cash_no_fund = net_cash
@@ -61,15 +75,24 @@ def calculate_cash_runway(
         month_num = idx + 1
         month_name = row['Month']
         revenue = row['Total Revenue']
-        cogs = row['Total COGS']
         opex = row['Total OpEx']
         funding = monthly_funding.get(month_num, 0)
+
+        if use_inv_split:
+            inv_purchase = po_payments.get(month_num, 0)
+            fulfill = fulfillment_cogs.get(month_num, 0)
+            ws_cog = row.get('Wholesale COGS', 0)
+            cash_cogs = inv_purchase + fulfill + ws_cog
+        else:
+            cash_cogs = row['Total COGS']
+            inv_purchase = 0
+            fulfill = 0
 
         # Cash inflow (revenue + funding)
         cash_in = revenue + funding
 
         # Cash outflow (COGS + OpEx)
-        cash_out = cogs + opex
+        cash_out = cash_cogs + opex
 
         # Net cash flow
         net_flow = cash_in - cash_out
@@ -89,7 +112,7 @@ def calculate_cash_runway(
         else:
             days_of_cash = 999  # Not burning
 
-        runway_data.append({
+        entry = {
             'Month': month_name,
             'Cash Inflow': cash_in,
             'Funding': funding,
@@ -98,8 +121,14 @@ def calculate_cash_runway(
             'Ending Cash': cumulative_cash,
             'Ending Cash (No Funding)': cumulative_cash_no_fund,
             'Monthly Burn Rate': burn_rate,
-            'Days of Cash': min(days_of_cash, 999)
-        })
+            'Days of Cash': min(days_of_cash, 999),
+        }
+        if use_inv_split:
+            entry['Inventory Purchases'] = inv_purchase
+            entry['Fulfillment COGS'] = fulfill
+            entry['WS COGS'] = ws_cog
+
+        runway_data.append(entry)
 
     return pd.DataFrame(runway_data)
 
@@ -178,15 +207,25 @@ def show():
         )
     
     with col4:
-        # Calculate proper monthly burn from projections
-        monthly_df = generate_monthly_pl(
+        # Get PO / inventory data if available
+        po_data = st.session_state.get('po_data')
+        inv_config = st.session_state.get('inventory_config')
+
+        # Build generate_monthly_pl kwargs
+        pl_kwargs = dict(
             year=2026,
             team_members=team_members,
             opex_expenses=opex_expenses,
             wholesale_deals=wholesale_deals,
             dtc_discount_rate=0.0,
-            dtc_return_rate=0.0
+            dtc_return_rate=0.0,
         )
+        if po_data and inv_config:
+            pl_kwargs['po_data'] = po_data
+            pl_kwargs['inventory_config'] = inv_config
+
+        # Calculate proper monthly burn from projections
+        monthly_df = generate_monthly_pl(**pl_kwargs)
         
         # Calculate ACTUAL burn rate from first 3 months (before wholesale kick in)
         first_three_months = monthly_df.head(3)
@@ -219,6 +258,25 @@ def show():
     # Get fundraising rounds
     fundraising_rounds = st.session_state.get('fundraising_rounds', [])
 
+    # Calculate PO payments and fulfillment COGS if inventory data available
+    po_pay = None
+    fulfill_cogs = None
+    if po_data and inv_config:
+        lead = inv_config.get('lead_time_months', 4)
+        pay_terms = inv_config.get('payment_terms_months', 5)
+        po_pay = calculate_po_payments(po_data, lead, pay_terms, 2026)
+
+        # Fulfillment COGS = DTC gross revenue * (total_cogs_rate - product_cost_rate)
+        # i.e. warehousing + freight + merchant = 15% of gross DTC revenue at sale time
+        cogs_total = inv_config.get('cogs_total_rate', 0.40)
+        cogs_product = inv_config.get('cogs_product_pct', 0.25)
+        fulfillment_rate = cogs_total - cogs_product  # 0.15
+
+        fulfill_cogs = {m: 0.0 for m in range(1, 13)}
+        if 'DTC Gross Revenue' in monthly_df.columns:
+            for idx_r, row_r in monthly_df.iterrows():
+                fulfill_cogs[idx_r + 1] = row_r['DTC Gross Revenue'] * fulfillment_rate
+
     # Calculate runway
     runway_df = calculate_cash_runway(
         starting_cash=starting_cash,
@@ -226,7 +284,9 @@ def show():
         current_ar=current_ar,
         monthly_pl_df=monthly_df,
         fundraising_rounds=fundraising_rounds,
-        year=2026
+        year=2026,
+        po_payments=po_pay,
+        fulfillment_cogs=fulfill_cogs,
     )
     
     # --- BURN BREAKDOWN ---
@@ -369,8 +429,15 @@ def show():
     
     # Format for display
     display_df = runway_df.copy()
-    for col in ['Cash Inflow', 'Funding', 'Cash Outflow', 'Net Cash Flow', 'Ending Cash', 'Ending Cash (No Funding)', 'Monthly Burn Rate']:
-        display_df[col] = display_df[col].apply(lambda x: f"${x:,.0f}")
+    money_cols = ['Cash Inflow', 'Funding', 'Cash Outflow', 'Net Cash Flow',
+                  'Ending Cash', 'Ending Cash (No Funding)', 'Monthly Burn Rate']
+    # Add inventory split columns if present
+    for extra in ['Inventory Purchases', 'Fulfillment COGS', 'WS COGS']:
+        if extra in display_df.columns:
+            money_cols.append(extra)
+    for col in money_cols:
+        if col in display_df.columns:
+            display_df[col] = display_df[col].apply(lambda x: f"${x:,.0f}")
     display_df['Days of Cash'] = display_df['Days of Cash'].apply(lambda x: f"{x:.0f}" if x < 999 else "∞")
     
     st.dataframe(display_df, use_container_width=True, hide_index=True)

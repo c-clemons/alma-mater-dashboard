@@ -17,7 +17,12 @@ from pathlib import Path
 parent_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(parent_dir))
 
-from financial_calcs import generate_monthly_pl
+from financial_calcs import (
+    generate_monthly_pl,
+    calculate_inventory_balance,
+    calculate_po_payments,
+    get_dtc_demand_units,
+)
 from qbo_parser import (
     deserialize_qbo_data, build_actuals_dataframe, actuals_to_pl_format, MONTHS
 )
@@ -760,6 +765,82 @@ def generate_pdf_report():
         story.append(ws_tbl)
     else:
         story.append(Paragraph("No wholesale deals loaded.", body_style))
+
+    story.append(Spacer(1, 0.2 * inch))
+
+    # --- Inventory Summary ---
+    po_data = st.session_state.get('po_data')
+    inv_config = st.session_state.get('inventory_config')
+
+    if po_data and inv_config:
+        story.append(Paragraph("Inventory & PO Summary", section_style))
+
+        lead = inv_config.get('lead_time_months', 4)
+        pay_terms = inv_config.get('payment_terms_months', 5)
+        beg_inv = {
+            "Beta": inv_config.get('beg_inv_beta', 2500),
+            "Alpha": inv_config.get('beg_inv_alpha', 500),
+        }
+
+        # Ending inventory by product for 2026
+        dtc_demand = get_dtc_demand_units(2026)
+        inv_bal = calculate_inventory_balance(
+            po_data, wholesale_deals, lead, beg_inv, dtc_demand, 2026,
+        )
+
+        inv_data = [['Product', 'Beg Inv', 'Total Arrivals', 'Total WS Ship',
+                      'Total DTC Sales', 'End Inv (Dec)']]
+        for prod in ["Beta", "Alpha"]:
+            b = inv_bal[prod]
+            inv_data.append([
+                prod,
+                f"{b['begin'][0]:,}",
+                f"{sum(b['arrive']):,}",
+                f"{sum(b['ws']):,}",
+                f"{sum(b['dtc_sales']):,}",
+                f"{b['ending'][-1]:,}",
+            ])
+
+        inv_tbl = Table(inv_data, colWidths=[0.9*inch, 0.9*inch, 1.1*inch, 1.1*inch, 1.1*inch, 1.1*inch])
+        inv_tbl.setStyle(_table_style())
+        story.append(inv_tbl)
+        story.append(Spacer(1, 0.1 * inch))
+
+        # Constrained months
+        constrained_months = []
+        for prod in ["Beta", "Alpha"]:
+            b = inv_bal[prod]
+            for m in range(12):
+                if b['demand'][m] > b['dtc_sales'][m]:
+                    constrained_months.append(f"{MONTHS[m]} ({prod})")
+
+        if constrained_months:
+            story.append(Paragraph(
+                f"Supply-constrained months: {', '.join(constrained_months)}",
+                body_style,
+            ))
+        else:
+            story.append(Paragraph("No supply constraints in 2026.", body_style))
+
+        story.append(Spacer(1, 0.1 * inch))
+
+        # PO payment schedule
+        payments = calculate_po_payments(po_data, lead, pay_terms, 2026)
+        pay_months = [(m, payments[m]) for m in range(1, 13) if payments[m] > 0]
+        if pay_months:
+            story.append(Paragraph("PO Payment Schedule (2026)", subsection_style))
+            pay_data = [['Month', 'Payment Amount']]
+            total_pay = 0
+            for m, amt in pay_months:
+                pay_data.append([MONTHS[m - 1], _fmt(amt)])
+                total_pay += amt
+            pay_data.append(['Total', _fmt(total_pay)])
+
+            pay_tbl = Table(pay_data, colWidths=[2.0*inch, 2.0*inch])
+            pay_tbl.setStyle(_table_style())
+            for cmd in _highlight_row_style(len(pay_data) - 1):
+                pay_tbl.setStyle(TableStyle([cmd]))
+            story.append(pay_tbl)
 
     story.append(Spacer(1, 0.3 * inch))
 

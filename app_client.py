@@ -80,6 +80,25 @@ def init_session_state():
             from baseline_data import get_baseline_fundraising
             st.session_state.fundraising_rounds = get_baseline_fundraising()
 
+    # Load PO data and inventory config
+    if 'po_data' not in st.session_state:
+        po_data = store.load_po_data()
+        if po_data:
+            st.session_state.po_data = po_data
+        else:
+            from baseline_data import get_baseline_po_data
+            st.session_state.po_data = get_baseline_po_data()
+
+    if 'inventory_config' not in st.session_state:
+        from baseline_data import get_baseline_inventory_config
+        loaded_assumptions = st.session_state.get('assumptions', {})
+        config = get_baseline_inventory_config()
+        # Override with any saved assumption values
+        for key in config:
+            if key in loaded_assumptions:
+                config[key] = loaded_assumptions[key]
+        st.session_state.inventory_config = config
+
     # Auto-save flag
     if 'auto_save_enabled' not in st.session_state:
         st.session_state.auto_save_enabled = True
@@ -105,6 +124,9 @@ def auto_save_data():
 
         if 'fundraising_rounds' in st.session_state:
             store.save_fundraising(st.session_state.fundraising_rounds)
+
+        if 'po_data' in st.session_state:
+            store.save_po_data(st.session_state.po_data)
 
 def main():
     """Main app"""
@@ -132,6 +154,7 @@ def main():
                 "Team Tracker",
                 "OpEx Tracker",
                 "Wholesale Tracker",
+                "Inventory Tracker",
                 "Export to PDF"
             ],
             label_visibility="collapsed"
@@ -194,6 +217,9 @@ def main():
     elif page == "Wholesale Tracker":
         from pages import wholesale_tracker
         wholesale_tracker.show()
+    elif page == "Inventory Tracker":
+        from pages import inventory_tracker
+        inventory_tracker.show()
     elif page == "Export to PDF":
         from pages import export_pdf
         export_pdf.show()

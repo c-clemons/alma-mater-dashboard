@@ -29,6 +29,11 @@ DEFAULTS = {
     'cac_floor': 30,
     # Starting values
     'starting_cash_2026': 93412,
+    # Inventory & PO defaults
+    'lead_time_months': 4,
+    'payment_terms_months': 5,
+    'beg_inv_beta': 2500,
+    'beg_inv_alpha': 500,
 }
 
 
@@ -69,12 +74,13 @@ def show():
     initialize_assumptions()
     
     # Tabs for different categories
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "Revenue & Pricing",
-        "COGS Components", 
+        "COGS Components",
         "Team & Payroll",
         "Marketing & CAC",
-        "Other Assumptions"
+        "Inventory & POs",
+        "Other Assumptions",
     ])
     
     # --- REVENUE TAB ---
@@ -301,8 +307,70 @@ def show():
             f"until reaching floor of ${st.session_state.assumptions['cac_floor']:.0f}"
         )
     
-    # --- OTHER TAB ---
+    # --- INVENTORY TAB ---
     with tab5:
+        st.markdown("### Inventory & Purchase Order Settings")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.session_state.assumptions['lead_time_months'] = st.number_input(
+                "Lead Time (months)",
+                min_value=1,
+                max_value=12,
+                value=int(st.session_state.assumptions.get('lead_time_months', 4)),
+                help="Months from PO order date to inventory arrival",
+                key="assumptions_lead_time",
+            )
+
+            st.session_state.assumptions['beg_inv_beta'] = st.number_input(
+                "Beginning Inventory - Beta (units)",
+                min_value=0,
+                value=int(st.session_state.assumptions.get('beg_inv_beta', 2500)),
+                step=100,
+                help="Beta units on hand at start of 2026",
+                key="assumptions_beg_beta",
+            )
+
+        with col2:
+            st.session_state.assumptions['payment_terms_months'] = st.number_input(
+                "Payment Terms (months after arrival)",
+                min_value=0,
+                max_value=12,
+                value=int(st.session_state.assumptions.get('payment_terms_months', 5)),
+                help="Months after inventory arrival before cash payment",
+                key="assumptions_pay_terms",
+            )
+
+            st.session_state.assumptions['beg_inv_alpha'] = st.number_input(
+                "Beginning Inventory - Alpha (units)",
+                min_value=0,
+                value=int(st.session_state.assumptions.get('beg_inv_alpha', 500)),
+                step=100,
+                help="Alpha units on hand at start of 2026",
+                key="assumptions_beg_alpha",
+            )
+
+        # Sync to inventory_config in session state
+        inv_config = st.session_state.get('inventory_config', {})
+        inv_config['lead_time_months'] = st.session_state.assumptions['lead_time_months']
+        inv_config['payment_terms_months'] = st.session_state.assumptions['payment_terms_months']
+        inv_config['beg_inv_beta'] = st.session_state.assumptions['beg_inv_beta']
+        inv_config['beg_inv_alpha'] = st.session_state.assumptions['beg_inv_alpha']
+        st.session_state.inventory_config = inv_config
+
+        st.divider()
+
+        lead = st.session_state.assumptions['lead_time_months']
+        pay = st.session_state.assumptions['payment_terms_months']
+        st.info(
+            f"**PO Timeline:** Order -> +{lead} months -> Inventory Arrives -> "
+            f"+{pay} months -> Cash Payment Due (total {lead + pay} months from order)"
+        )
+        st.caption("Manage individual POs on the **Inventory Tracker** page.")
+
+    # --- OTHER TAB ---
+    with tab6:
         st.markdown("### Starting Values")
         
         col1, col2 = st.columns(2)

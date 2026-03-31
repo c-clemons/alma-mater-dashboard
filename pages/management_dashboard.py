@@ -16,6 +16,7 @@ parent_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(parent_dir))
 
 from financial_calcs import generate_monthly_pl, get_cogs_breakdown
+from shopify_client import get_shopify_data, is_configured as shopify_configured
 
 
 MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -187,26 +188,18 @@ def show():
         with c2:
             st.metric("Current Liabilities", f"${latest_ap:,.0f}")
         with c3:
-            cash_delta = "Available for operations" if net_cash > 0 else "Negative — action needed"
-            st.metric("Net Cash Position", f"${net_cash:,.0f}", delta=cash_delta,
-                      delta_color="normal" if net_cash > 0 else "inverse")
+            cash_label = "Available for operations" if net_cash > 0 else "Negative — action needed"
+            st.metric("Net Cash Position", f"${net_cash:,.0f}")
+            st.caption(cash_label)
         with c4:
-            st.metric(
-                "Days of Cash",
-                f"{days_of_cash_net} days",
-                delta=f"{months_of_cash_net} months",
-                delta_color="normal" if months_of_cash_net > 3 else "inverse"
-            )
+            st.metric("Days of Cash", f"{days_of_cash_net} days")
+            st.caption(f"{months_of_cash_net} months")
 
         # Second row: additional burn/runway metrics
         c5, c6, c7, c8 = st.columns(4)
         with c5:
-            st.metric(
-                "Days of Cash (excl. liabilities)",
-                f"{days_of_cash_gross} days",
-                delta=f"{months_of_cash_gross} months",
-                delta_color="normal" if months_of_cash_gross > 3 else "inverse"
-            )
+            st.metric("Days of Cash (excl. liabilities)", f"{days_of_cash_gross} days")
+            st.caption(f"{months_of_cash_gross} months")
         with c6:
             st.metric(
                 "Avg Monthly Burn (2026 Actuals)",
@@ -231,6 +224,163 @@ def show():
         st.divider()
     else:
         st.info("No QBO actuals loaded. Showing forecast only. Import via **QBO Import** page.")
+
+    # ================================================================
+    # SHOPIFY LIVE METRICS (YTD from Shopify API)
+    # ================================================================
+    shopify_data = None
+    if shopify_configured():
+        try:
+            shopify_data = get_shopify_data(2026)
+        except Exception as e:
+            st.warning(f"Shopify data unavailable: {e}")
+
+    if shopify_data:
+        st.markdown("## Shopify Sales (Live YTD)")
+        so = shopify_data['orders']
+        inv = shopify_data['inventory']
+
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
+        with c1:
+            st.metric("Units Sold (Total)", f"{so['total_units']:,}")
+        with c2:
+            dtc = so['channel'].get('DTC', {})
+            st.metric("Units Sold (DTC)", f"{dtc.get('units', 0):,}")
+            st.caption(f"{dtc.get('orders', 0)} orders")
+        with c3:
+            ws = so['channel'].get('Wholesale', {})
+            st.metric("Units Sold (Wholesale)", f"{ws.get('units', 0):,}")
+            st.caption(f"{ws.get('orders', 0)} orders")
+        with c4:
+            st.metric("Gross Revenue", f"${so['total_gross']:,.0f}",
+                      help="Before discounts")
+        with c5:
+            st.metric("Net Revenue", f"${so['total_net']:,.0f}")
+            st.caption(f"{so['discount_rate']:.0f}% discount rate")
+        with c6:
+            st.metric("Inventory on Hand", f"{inv['total_units']:,}")
+            st.caption(f"{inv['in_stock']} of {inv['total_products']} SKUs in stock")
+
+        # ---- Monthly Net Revenue by Channel chart ----
+        months_with_data = [m for m in so['monthly'] if m['orders'] > 0]
+        if months_with_data:
+            m_df = pd.DataFrame(months_with_data)
+            fig_shop = go.Figure()
+            fig_shop.add_trace(go.Bar(
+                name='DTC Net', x=m_df['month_name'], y=m_df['dtc_net'],
+                marker_color=ACCENT_BLUE,
+            ))
+            fig_shop.add_trace(go.Bar(
+                name='Wholesale Net', x=m_df['month_name'], y=m_df['ws_net'],
+                marker_color=ACCENT_PURPLE,
+            ))
+            fig_shop.update_layout(
+                title='Monthly Net Revenue by Channel',
+                barmode='stack', height=300, showlegend=True,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                yaxis_tickformat='$,.0f', margin=dict(t=50, b=30),
+            )
+            st.plotly_chart(fig_shop, use_container_width=True)
+
+        # ---- Last 7 days vs prior 7 days ----
+        if so['daily']:
+            from datetime import date, timedelta as td
+            today = date.today()
+            # Last 7 full days = yesterday back 7 days
+            end_recent = today - td(days=1)
+            start_recent = end_recent - td(days=6)
+            end_prior = start_recent - td(days=1)
+            start_prior = end_prior - td(days=6)
+
+            def _sum_period(daily, start, end):
+                dtc_units = 0; ws_units = 0; dtc_net = 0; ws_net = 0; orders = 0
+                # We need order-level data for channel split; use daily totals as proxy
+                # Recompute from raw orders in shopify_data
+                return None  # Will use order-level below
+
+            # Recompute from raw order analysis monthly data — but we need daily
+            # channel split. Let's compute from the daily + monthly data.
+            # Better: iterate orders directly from the cached data
+            import shopify_client as sc
+            all_orders = None
+            try:
+                cache_key = 'shopify_raw_orders_2026'
+                if cache_key in st.session_state:
+                    all_orders = st.session_state[cache_key]
+                else:
+                    all_orders = sc.fetch_orders_ytd(2026)
+                    st.session_state[cache_key] = all_orders
+            except Exception:
+                pass
+
+            if all_orders:
+                def _period_stats(orders_list, start_dt, end_dt):
+                    stats = {'dtc_units': 0, 'ws_units': 0, 'dtc_net': 0, 'ws_net': 0,
+                             'gift_units': 0, 'orders': 0}
+                    for o in orders_list:
+                        created = o.get('created_at', '')[:10]
+                        if not created:
+                            continue
+                        try:
+                            od = date.fromisoformat(created)
+                        except ValueError:
+                            continue
+                        if od < start_dt or od > end_dt:
+                            continue
+                        stats['orders'] += 1
+                        otype = sc.classify_order(o)
+                        units = sum(li.get('quantity', 0) for li in o.get('line_items', []))
+                        net = float(o.get('subtotal_price', 0))
+                        if otype == 'DTC':
+                            stats['dtc_units'] += units
+                            stats['dtc_net'] += net
+                        elif otype == 'Wholesale':
+                            stats['ws_units'] += units
+                            stats['ws_net'] += net
+                        else:
+                            stats['gift_units'] += units
+                    return stats
+
+                recent = _period_stats(all_orders, start_recent, end_recent)
+                prior = _period_stats(all_orders, start_prior, end_prior)
+
+                st.markdown(
+                    f"#### Last 7 Days ({start_recent.strftime('%b %d')} – {end_recent.strftime('%b %d')}) "
+                    f"vs Prior 7 Days ({start_prior.strftime('%b %d')} – {end_prior.strftime('%b %d')})"
+                )
+
+                def _delta_str_units(val):
+                    """Format unit delta: '+12 vs prior 7d' or '-37 vs prior 7d'"""
+                    return f"{val:+,} vs prior 7d"
+
+                def _delta_str_rev(val):
+                    """Format revenue delta with sign before $: '+$1,234' or '-$5,678'"""
+                    sign = '+' if val >= 0 else '-'
+                    return f"{sign}${abs(val):,.0f} vs prior 7d"
+
+                c1, c2, c3, c4 = st.columns(4)
+                with c1:
+                    delta_u = recent['dtc_units'] - prior['dtc_units']
+                    st.metric("DTC Units", f"{recent['dtc_units']:,}",
+                              delta=_delta_str_units(delta_u),
+                              delta_color="normal" if delta_u >= 0 else "inverse")
+                with c2:
+                    delta_r = recent['dtc_net'] - prior['dtc_net']
+                    st.metric("DTC Net Revenue", f"${recent['dtc_net']:,.0f}",
+                              delta=_delta_str_rev(delta_r),
+                              delta_color="normal" if delta_r >= 0 else "inverse")
+                with c3:
+                    delta_wu = recent['ws_units'] - prior['ws_units']
+                    st.metric("Wholesale Units", f"{recent['ws_units']:,}",
+                              delta=_delta_str_units(delta_wu),
+                              delta_color="normal" if delta_wu >= 0 else "inverse")
+                with c4:
+                    delta_wr = recent['ws_net'] - prior['ws_net']
+                    st.metric("Wholesale Net Revenue", f"${recent['ws_net']:,.0f}",
+                              delta=_delta_str_rev(delta_wr),
+                              delta_color="normal" if delta_wr >= 0 else "inverse")
+
+        st.divider()
 
     # ================================================================
     # ROW 2: KEY RATIOS

@@ -146,6 +146,7 @@ def main():
             "Select Page:",
             [
                 "Management Dashboard",
+                "Shopify Analytics",
                 "Cash Flow & Runway",
                 "Monthly P&L Detail",
                 "Fundraising",
@@ -193,6 +194,9 @@ def main():
     if page == "Management Dashboard":
         from pages import management_dashboard
         management_dashboard.show()
+    elif page == "Shopify Analytics":
+        from pages import shopify_analytics
+        shopify_analytics.show()
     elif page == "Cash Flow & Runway":
         from pages import cash_runway
         cash_runway.show()

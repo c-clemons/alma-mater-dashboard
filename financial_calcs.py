@@ -148,51 +148,63 @@ def calculate_opex_monthly(opex_expenses: List[Dict], year: int = 2026) -> Dict[
 
 def calculate_wholesale_revenue_monthly(deals: List[Dict], year: int = 2026) -> Tuple[Dict[int, float], Dict[int, float]]:
     """
-    Calculate monthly wholesale revenue and COGS
-    
+    Calculate monthly wholesale revenue and COGS.
+    Distributes each deal around its delivery month:
+      50% in delivery month, 18% in months +/-1, 7% in months +/-2.
+    Nov and Dec are always zero for wholesale.
+
     Returns: (revenue_dict, cogs_dict) where each is {month: amount}
     """
+    # Distribution weights around the delivery month
+    SPREAD = [
+        (-2, 0.07),  # 2 months before
+        (-1, 0.18),  # 1 month before
+        ( 0, 0.50),  # delivery month
+        (+1, 0.18),  # 1 month after
+        (+2, 0.07),  # 2 months after
+    ]
+
     monthly_revenue = {month: 0.0 for month in range(1, 13)}
     monthly_cogs = {month: 0.0 for month in range(1, 13)}
-    
+
     for deal in deals:
         # Parse delivery date (revenue recognition date)
         delivery_date_str = deal.get('delivery_date') or deal.get('close_date')
         if not delivery_date_str:
             continue
-        
+
         try:
             delivery_date = datetime.strptime(delivery_date_str, '%Y-%m-%d').date()
         except:
             continue
-        
+
         if delivery_date.year != year:
             continue
-        
-        # Calculate revenue
+
+        # Calculate total revenue
         num_pairs = deal.get('num_pairs', 0)
         wholesale_price = deal.get('wholesale_price', 0)
         revenue = num_pairs * wholesale_price
-        
-        # Calculate COGS
+
+        # Calculate total COGS
         if 'total_cost' in deal:
-            # Use client-provided total cost
             cogs = deal['total_cost']
         else:
-            # Calculate from COGS components
             cogs_product = deal.get('cogs_product', 0.25)
             cogs_warehousing = deal.get('cogs_warehousing', 0.06)
             cogs_freight = deal.get('cogs_freight', 0.06)
             cogs_merchant = deal.get('cogs_merchant', 0.03)
-            
             total_cogs_rate = cogs_product + cogs_warehousing + cogs_freight + cogs_merchant
             cogs = revenue * total_cogs_rate
-        
-        # Add to month
-        month = delivery_date.month
-        monthly_revenue[month] += revenue
-        monthly_cogs[month] += cogs
-    
+
+        # Spread revenue and COGS around delivery month
+        delivery_month = delivery_date.month
+        for offset, weight in SPREAD:
+            target_month = delivery_month + offset
+            if 1 <= target_month <= 10:  # Nov/Dec always zero
+                monthly_revenue[target_month] += revenue * weight
+                monthly_cogs[target_month] += cogs * weight
+
     return monthly_revenue, monthly_cogs
 
 

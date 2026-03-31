@@ -363,22 +363,22 @@ def show():
                     delta_u = recent['dtc_units'] - prior['dtc_units']
                     st.metric("DTC Units", f"{recent['dtc_units']:,}",
                               delta=_delta_str_units(delta_u),
-                              delta_color="normal" if delta_u >= 0 else "inverse")
+                              delta_color="normal")
                 with c2:
                     delta_r = recent['dtc_net'] - prior['dtc_net']
                     st.metric("DTC Net Revenue", f"${recent['dtc_net']:,.0f}",
                               delta=_delta_str_rev(delta_r),
-                              delta_color="normal" if delta_r >= 0 else "inverse")
+                              delta_color="normal")
                 with c3:
                     delta_wu = recent['ws_units'] - prior['ws_units']
                     st.metric("Wholesale Units", f"{recent['ws_units']:,}",
                               delta=_delta_str_units(delta_wu),
-                              delta_color="normal" if delta_wu >= 0 else "inverse")
+                              delta_color="normal")
                 with c4:
                     delta_wr = recent['ws_net'] - prior['ws_net']
                     st.metric("Wholesale Net Revenue", f"${recent['ws_net']:,.0f}",
                               delta=_delta_str_rev(delta_wr),
-                              delta_color="normal" if delta_wr >= 0 else "inverse")
+                              delta_color="normal")
 
         st.divider()
 

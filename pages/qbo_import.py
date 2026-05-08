@@ -83,7 +83,7 @@ def show():
             key_cols = ['DTC Revenue', 'Wholesale Revenue', 'Total Revenue',
                         'Total COGS', 'Gross Profit', 'Total OpEx', 'EBITDA']
             transposed_25 = df_25.set_index('Month')[key_cols].T
-            transposed_25_fmt = transposed_25.applymap(lambda x: f"${x:,.0f}" if x != 0 else "-")
+            transposed_25_fmt = transposed_25.map(lambda x: f"${x:,.0f}" if x != 0 else "-")
 
             st.dataframe(transposed_25_fmt, use_container_width=True)
 
@@ -113,7 +113,7 @@ def show():
                 df_26 = pd.DataFrame(rows_26)
 
                 transposed_26 = df_26.set_index('Month')[key_cols].T
-                transposed_26_fmt = transposed_26.applymap(lambda x: f"${x:,.0f}" if x != 0 else "-")
+                transposed_26_fmt = transposed_26.map(lambda x: f"${x:,.0f}" if x != 0 else "-")
 
                 st.dataframe(transposed_26_fmt, use_container_width=True)
 

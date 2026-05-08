@@ -12,7 +12,7 @@ from baseline_data import get_rippling_burdens
 
 def calculate_team_costs_monthly(team_members: List[Dict], year: int = 2026) -> Dict[int, float]:
     """
-    Calculate monthly team costs including Rippling burdens starting May 2026.
+    Calculate monthly team costs including Congruity PEO burdens starting June 2026.
     Matches Excel model Team Costs tab formula logic exactly.
 
     Returns: Dict of {month: total_cost}
@@ -62,15 +62,15 @@ def calculate_team_costs_monthly(team_members: List[Dict], year: int = 2026) -> 
             else:
                 # W2 employees get burdens
                 if month >= rippling['start_month']:
-                    # Rippling PEO starts in May
-                    cost += rippling['rippling']      # $137/month
-                    cost += rippling['healthcare']     # $697.91/month
-                    cost += rippling['futa']           # $3.50/month
-                    cost += monthly_salary * rippling['medicare']   # 1.45%
-                    cost += monthly_salary * rippling['soc_secur']  # 6.2%
-                    cost += monthly_salary * rippling['ca_ett']     # 0.1%
+                    # Congruity PEO starts in June
+                    cost += rippling['rippling']       # platform $/mo
+                    cost += rippling['healthcare']     # $/mo
+                    cost += rippling['futa']           # $/mo
+                    cost += monthly_salary * rippling['medicare']
+                    cost += monthly_salary * rippling['soc_secur']
+                    cost += monthly_salary * rippling['ca_ett']
                 else:
-                    # Pre-Rippling: flat 18.5% burden rate
+                    # Pre-Congruity: flat burden rate (Jan-May)
                     cost += monthly_salary * pre_rippling_rate
 
             monthly_costs[month] += cost
@@ -219,50 +219,28 @@ def calculate_dtc_revenue_monthly(year: int = 2026, discount_rate: float = 0.0, 
     monthly_cogs = {month: 0.0 for month in range(1, 13)}
     
     if year == 2026:
-        # 2026 Forecast from Matt's updated roadmap (Screenshot 2/11/26)
-        # V2 (Beta) product - units sold per month
-        v2_units = [10, 20, 30, 50, 100, 150, 200, 225, 250, 275, 300, 325]
-        v2_aov = 250  # $250 AOV
-        
-        # Alpha product - starts later in year
-        alpha_units = [0, 0, 0, 0, 0, 0, 50, 100, 200, 300, 300, 0]
-        alpha_aov = 450  # $450 AOV
-        
-        cogs_rate = 0.40  # 40% in production
-        
-        for month in range(1, 13):
-            gross_revenue = (v2_units[month-1] * v2_aov + alpha_units[month-1] * alpha_aov)
-            
-            # Apply discount
-            net_revenue = gross_revenue * (1 - discount_rate)
-            
-            # Apply returns (reduce revenue further)
-            final_revenue = net_revenue * (1 - return_rate)
-            
-            monthly_revenue[month] = final_revenue
-            monthly_cogs[month] = gross_revenue * cogs_rate  # COGS on gross
-    
-    elif year == 2027:
-        # 2027 projections (with discounts and returns)
-        # Scale up from 2026 - build to 1,000 pairs/month
-        # Apply 10% discount and 20% returns
-        v2_units = [350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900]
-        v2_aov = 250
-        
-        alpha_units = [300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850]
-        alpha_aov = 450
-        
+        # 2026 Forecast from Matt's Marketing/Ecom Budget — Forecast tab (May 2026)
+        orders   = [27, 35, 91, 133.7, 194.7, 288, 297.5, 180, 156, 180, 396, 267]
+        monthly_aov = [551.26, 362.06, 407.47, 300, 300, 300, 300, 300, 300, 300, 300, 300]
         cogs_rate = 0.40
-        
+
         for month in range(1, 13):
-            gross_revenue = (v2_units[month-1] * v2_aov + alpha_units[month-1] * alpha_aov)
-            
-            # Apply 10% discount
+            gross_revenue = orders[month-1] * monthly_aov[month-1]
             net_revenue = gross_revenue * (1 - discount_rate)
-            
-            # Apply 20% returns
             final_revenue = net_revenue * (1 - return_rate)
-            
+            monthly_revenue[month] = final_revenue
+            monthly_cogs[month] = gross_revenue * cogs_rate
+
+    elif year == 2027:
+        # 2027 Forecast from Matt's Forecast tab
+        orders   = [84, 112, 216, 360, 396, 396, 396, 320, 288, 272, 440, 330]
+        monthly_aov = [350, 350, 375, 425, 450, 450, 450, 425, 425, 425, 400, 400]
+        cogs_rate = 0.40
+
+        for month in range(1, 13):
+            gross_revenue = orders[month-1] * monthly_aov[month-1]
+            net_revenue = gross_revenue * (1 - discount_rate)
+            final_revenue = net_revenue * (1 - return_rate)
             monthly_revenue[month] = final_revenue
             monthly_cogs[month] = gross_revenue * cogs_rate
     

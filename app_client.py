@@ -128,9 +128,33 @@ def auto_save_data():
         if 'po_data' in st.session_state:
             store.save_po_data(st.session_state.po_data)
 
+def check_password() -> bool:
+    """Gate the app behind a single shared password from st.secrets."""
+    if st.session_state.get('authenticated'):
+        return True
+
+    st.markdown('<div class="main-header">Alma Mater Financial Dashboard</div>',
+                unsafe_allow_html=True)
+    st.markdown("Enter password to continue.")
+
+    pw = st.text_input("Password", type="password", key="pw_input")
+    if pw:
+        expected = st.secrets.get("dashboard_password")
+        if expected and pw == expected:
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("Incorrect password.")
+    return False
+
+
 def main():
     """Main app"""
-    
+
+    # Auth gate
+    if not check_password():
+        return
+
     # Initialize
     init_session_state()
     

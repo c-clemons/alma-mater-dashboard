@@ -177,7 +177,7 @@ def show():
                     'Total COGS', 'Gross Profit', 'Total OpEx', 'EBITDA']
         available_cols = [c for c in key_cols if c in df_2025.columns]
         transposed = df_2025.set_index('Month')[available_cols].T
-        transposed_fmt = transposed.applymap(lambda x: f"${x:,.0f}")
+        transposed_fmt = transposed.map(lambda x: f"${x:,.0f}")
         st.dataframe(transposed_fmt, use_container_width=True)
 
         csv = df_2025.to_csv(index=False)
@@ -208,7 +208,7 @@ def show():
         key_cols_26 = ['DTC Revenue', 'Wholesale Revenue', 'Total Revenue', 'Total COGS',
                        'Gross Profit', 'Team Costs', 'Other OpEx', 'Total OpEx', 'EBITDA']
         transposed_26 = df_2026_forecast.set_index('Month')[key_cols_26].T
-        transposed_26_fmt = transposed_26.applymap(lambda x: f"${x:,.0f}")
+        transposed_26_fmt = transposed_26.map(lambda x: f"${x:,.0f}")
         st.dataframe(transposed_26_fmt, use_container_width=True)
 
         csv = df_2026_forecast.to_csv(index=False)

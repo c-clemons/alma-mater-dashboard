@@ -696,7 +696,6 @@ def generate_pdf_report():
 
     if team_members:
         total_headcount = len(team_members)
-        total_salary = sum(m.get('annual_salary', 0) for m in team_members)
         total_annual_cost = sum(
             m.get('total_cost', m.get('annual_salary', 0) * 1.185)
             for m in team_members
@@ -706,7 +705,6 @@ def generate_pdf_report():
         team_data = [
             ['Metric', 'Value'],
             ['Total Headcount', str(total_headcount)],
-            ['Total Annual Salaries', _fmt(total_salary)],
             ['Total Annual Cost (incl. burdens)', _fmt(total_annual_cost)],
             ['Monthly Payroll Burden', _fmt(monthly_payroll)],
         ]

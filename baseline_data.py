@@ -18,7 +18,7 @@ BASELINE_TEAM = [
         'title': 'Operations',
         'department': 'General & Administrative',
         'employment_type': 'Full-Time Employee (FTE)',
-        'annual_salary': 48000.00,
+        'annual_salary': 60000.00,
         'start_date': '2026-01-01',
         'termination_date': None,
         'location': 'USA',
@@ -46,7 +46,7 @@ BASELINE_TEAM = [
         'title': 'Admin',
         'department': 'General & Administrative',
         'employment_type': 'Full-Time Employee (FTE)',
-        'annual_salary': 12000.00,
+        'annual_salary': 24000.00,
         'start_date': '2026-01-01',
         'termination_date': None,
         'location': 'USA',
@@ -116,12 +116,12 @@ BASELINE_TEAM = [
         'title': 'Sales',
         'department': 'Sales & Marketing',
         'employment_type': 'Full-Time Employee (FTE)',
-        'annual_salary': 30000.00,
-        'start_date': '2026-05-01',
+        'annual_salary': 60000.00,
+        'start_date': '2026-06-01',
         'termination_date': None,
         'location': 'USA',
         'status': 'Projected',
-        'notes': 'Starting May 2026',
+        'notes': 'Starting June 1, 2026 (Congruity W2)',
         'created_at': '2026-01-01T00:00:00',
     },
     {
@@ -130,12 +130,12 @@ BASELINE_TEAM = [
         'title': 'Operations',
         'department': 'General & Administrative',
         'employment_type': 'Full-Time Employee (FTE)',
-        'annual_salary': 30000.00,
-        'start_date': '2026-05-01',
+        'annual_salary': 60000.00,
+        'start_date': '2026-06-01',
         'termination_date': None,
         'location': 'USA',
         'status': 'Projected',
-        'notes': 'Starting May 2026',
+        'notes': 'Starting June 1, 2026 (Congruity W2)',
         'created_at': '2026-01-01T00:00:00',
     },
 ]
@@ -164,20 +164,20 @@ BASELINE_OPEX_MONTHLY = [
     {
         'expense_name': 'FSG Creative',
         'category': 'Sales & Marketing',
-        'monthly_values': [0, 15000, 13000, 3000, 3000, 3000, 3000, 10000, 3000, 13000, 3000, 3000],
-        'notes': 'FSG creative services - Matt Econ Roadmap',
+        'monthly_values': [5500, 5500, 5500, 5500, 5500, 5500, 5500, 5500, 5500, 5500, 5500, 5500],
+        'notes': 'Matt Budget 2026: $66k Creative — even spread',
     },
     {
         'expense_name': 'FSG Channel',
         'category': 'Sales & Marketing',
-        'monthly_values': [0, 6300, 6300, 2400, 2400, 2400, 2400, 2400, 2400, 2400, 2400, 2400],
-        'notes': 'FSG channel/ecom management - Matt Econ Roadmap',
+        'monthly_values': [2166.67, 2166.67, 2166.67, 2166.67, 2166.67, 2166.67, 2166.67, 2166.67, 2166.67, 2166.67, 2166.67, 2166.67],
+        'notes': 'Matt Budget 2026: $26k Channel — even spread',
     },
     {
         'expense_name': 'Perf. Marketing (Ad Spend)',
         'category': 'Sales & Marketing',
-        'monthly_values': [0, 0, 0, 10000, 10000, 10000, 10000, 10000, 20000, 20000, 20000, 25000],
-        'notes': 'Google/Meta ad spend - ramps through year',
+        'monthly_values': [8750, 8750, 8750, 8750, 8750, 8750, 8750, 8750, 8750, 8750, 8750, 8750],
+        'notes': 'Matt Budget 2026: $105k Marketing — even spread',
     },
     {
         'expense_name': 'Affiliate Costs',
@@ -293,16 +293,16 @@ def _build_opex_list():
 BASELINE_OPEX = _build_opex_list()
 
 
-# RIPPLING BURDENS (Starting May 2026)
+# CONGRUITY PEO BURDENS (Starting June 2026)
 RIPPLING_BURDENS = {
-    'start_month': 5,  # May
-    'rippling': 137.00,  # Monthly per employee
-    'healthcare': 697.91,  # Monthly (varies by employee)
-    'futa': 3.50,  # Monthly
-    'medicare': 0.0145,  # % of salary
-    'soc_secur': 0.062,  # % of salary
-    'ca_ett': 0.001,  # % of salary (CA only)
-    'pre_rippling_rate': 0.185,  # 18.5% flat burden Jan-Apr
+    'start_month': 6,  # June
+    'rippling': 166.67,    # Congruity platform: $10k/yr ÷ 12 ÷ 5 employees
+    'healthcare': 666.67,  # $40k/yr ÷ 12 ÷ 5 employees
+    'futa': 3.50,
+    'medicare': 0.0145,
+    'soc_secur': 0.062,
+    'ca_ett': 0.001,
+    'pre_rippling_rate': 0.185,  # Pre-Congruity flat burden Jan-May
 }
 
 

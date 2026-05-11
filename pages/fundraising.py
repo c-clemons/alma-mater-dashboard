@@ -148,13 +148,19 @@ def show():
         summary_df = pd.DataFrame(summary_data)
         total_planned = summary_df['Amount'].sum()
 
+        closed_total = sum(
+            r.get('amount', 0) for r in rounds
+            if str(r.get('status', '')).lower() == 'closed'
+        )
+        projected_total = total_planned - closed_total
+
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Total Planned Fundraising", f"${total_planned:,.0f}")
+            st.metric("Total Fundraising", f"${total_planned:,.0f}")
         with col2:
-            st.metric("SAFE Notes Raised", f"${new_safe:,.0f}")
+            st.metric("Closed", f"${closed_total:,.0f}")
         with col3:
-            st.metric("Total Capital (Raised + Planned)", f"${new_safe + total_planned:,.0f}")
+            st.metric("Projected / TBD", f"${projected_total:,.0f}")
 
         # Format for display
         display_df = summary_df.copy()

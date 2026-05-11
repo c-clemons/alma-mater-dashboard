@@ -36,23 +36,6 @@ def show():
 
     rounds = st.session_state.fundraising_rounds
 
-    # --- SAFE Notes Already Raised ---
-    st.markdown("## Prior Funding")
-    assumptions = st.session_state.get('assumptions', {})
-    safe_raised = assumptions.get('safe_notes_raised', 308000.0)
-    new_safe = st.number_input(
-        "SAFE Notes Already Raised ($)",
-        min_value=0.0,
-        value=float(safe_raised),
-        step=10000.0,
-        help="Total amount raised via SAFE notes prior to 2026"
-    )
-    if new_safe != safe_raised:
-        assumptions['safe_notes_raised'] = new_safe
-        st.session_state.assumptions = assumptions
-
-    st.divider()
-
     # --- Fundraising Rounds ---
     st.markdown("## Planned Fundraising Rounds")
     st.info("Add fundraising events below. These will be reflected in your Cash Flow & Runway projections.")

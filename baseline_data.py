@@ -15,8 +15,8 @@ BASELINE_TEAM = [
     {
         'first_name': 'Ryan',
         'last_name': 'Person',
-        'title': 'Operations',
-        'department': 'General & Administrative',
+        'title': 'Head of Golf',
+        'department': 'Sales & Marketing',
         'employment_type': 'Full-Time Employee (FTE)',
         'annual_salary': 60000.00,
         'start_date': '2026-01-01',
@@ -29,7 +29,7 @@ BASELINE_TEAM = [
     {
         'first_name': 'Jenny',
         'last_name': 'Champion',
-        'title': 'Marketing',
+        'title': 'Sales Rep',
         'department': 'Sales & Marketing',
         'employment_type': 'Full-Time Employee (FTE)',
         'annual_salary': 36000.00,
@@ -43,7 +43,7 @@ BASELINE_TEAM = [
     {
         'first_name': 'Michele',
         'last_name': 'Coffman',
-        'title': 'Admin',
+        'title': 'Operations',
         'department': 'General & Administrative',
         'employment_type': 'Full-Time Employee (FTE)',
         'annual_salary': 24000.00,
@@ -57,8 +57,8 @@ BASELINE_TEAM = [
     {
         'first_name': 'Sukhjit',
         'last_name': '',
-        'title': 'Product Development',
-        'department': 'Research & Development',
+        'title': 'Online Marketing',
+        'department': 'Sales & Marketing',
         'employment_type': 'Full-Time Employee (FTE)',
         'annual_salary': 54000.00,
         'start_date': '2026-01-01',
@@ -71,7 +71,7 @@ BASELINE_TEAM = [
     {
         'first_name': 'Marty',
         'last_name': 'Hackle',
-        'title': 'W9 Contractor',
+        'title': 'Advisor',
         'department': 'General & Administrative',
         'employment_type': 'Contractor (1099)',
         'annual_salary': 48000.00,
@@ -79,7 +79,7 @@ BASELINE_TEAM = [
         'termination_date': None,
         'location': 'USA',
         'status': 'Active',
-        'notes': 'W9 contractor - no burdens',
+        'notes': 'Advisor - 1099',
         'created_at': '2026-01-01T00:00:00',
     },
     {
@@ -113,8 +113,8 @@ BASELINE_TEAM = [
     {
         'first_name': 'Nathan',
         'last_name': 'Brown',
-        'title': 'Sales',
-        'department': 'Sales & Marketing',
+        'title': 'CEO',
+        'department': 'General & Administrative',
         'employment_type': 'Full-Time Employee (FTE)',
         'annual_salary': 60000.00,
         'start_date': '2026-06-01',
@@ -127,8 +127,8 @@ BASELINE_TEAM = [
     {
         'first_name': 'Jay',
         'last_name': 'Nalbach',
-        'title': 'Operations',
-        'department': 'General & Administrative',
+        'title': 'Marketing Communications',
+        'department': 'Sales & Marketing',
         'employment_type': 'Full-Time Employee (FTE)',
         'annual_salary': 60000.00,
         'start_date': '2026-06-01',
@@ -137,6 +137,20 @@ BASELINE_TEAM = [
         'status': 'Projected',
         'notes': 'Starting June 1, 2026 (Congruity W2)',
         'created_at': '2026-01-01T00:00:00',
+    },
+    {
+        'first_name': 'John',
+        'last_name': 'Anderson',
+        'title': 'Head of Sales',
+        'department': 'Sales & Marketing',
+        'employment_type': 'Contractor (1099)',
+        'annual_salary': 60000.00,
+        'start_date': '2026-06-01',
+        'termination_date': None,
+        'location': 'USA',
+        'status': 'Projected',
+        'notes': 'Fractional Head of Sales — $5k/mo starting Jun 1',
+        'created_at': '2026-05-11T00:00:00',
     },
 ]
 
@@ -347,12 +361,20 @@ BASELINE_WHOLESALE = [
 # ============================================================
 BASELINE_FUNDRAISING = [
     {
-        'name': 'Seed / SAFE Round',
-        'amount': 500000.0,
-        'month': 3,
+        'name': '1st SAFE Round',
+        'amount': 323000.0,
+        'month': 1,
         'year': 2026,
-        'status': 'Projected',
-        'notes': 'Target seed round',
+        'status': 'Closed',
+        'notes': 'Pre-existing SAFE — received before 2026',
+    },
+    {
+        'name': '2nd SAFE Round',
+        'amount': 555000.0,
+        'month': 4,
+        'year': 2026,
+        'status': 'Closed',
+        'notes': 'Closed April 2026 — funds in bank',
     },
 ]
 

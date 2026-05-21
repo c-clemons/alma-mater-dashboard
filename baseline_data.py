@@ -163,65 +163,63 @@ BASELINE_TEAM = [
 # Items with custom monthly schedules (from Matt Econ Roadmap)
 # Format: expense_name, category, monthly_values[Jan..Dec]
 BASELINE_OPEX_MONTHLY = [
+    # 2026 OpEx restructured May 21 to mirror Matt's new 2026 Budget file
+    # (AM Marketing_Ecom Budget.xlsx). Compromise 16-line structure: one row per
+    # (Section × Cost Type) subtotal. Jan-Apr are Q1 actuals from Matt; May-Dec is
+    # Plan. Closed-month overrides still flow from QBO actuals. Total: $463,469/yr
     {
-        'expense_name': 'FSG Strategy & Ops',
-        'category': 'Professional Services',
-        'monthly_values': [5900, 11000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000],
-        'notes': 'FSG strategic & ops consulting - Matt Econ Roadmap',
-    },
-    {
-        'expense_name': 'FSG Marketing Mgmt',
+        'expense_name': 'Brand Creative — Creative',
         'category': 'Sales & Marketing',
-        'monthly_values': [0, 12000, 12000, 7940, 7940, 7940, 7940, 7940, 7940, 7940, 7940, 7940],
-        'notes': 'FSG marketing management - Matt Econ Roadmap',
+        'monthly_values': [375, 8750, 3325, 17175, 0, 0, 0, 0, 0, 0, 0, 0],
+        'notes': 'Brand Creative / Production — photo/video, copy, design (Matt 2026 Budget)',
     },
     {
-        'expense_name': 'FSG Creative',
+        'expense_name': 'Marketing Channels — Mgmt',
         'category': 'Sales & Marketing',
-        'monthly_values': [5500, 5500, 5500, 5500, 5500, 5500, 5500, 5500, 5500, 5500, 5500, 5500],
-        'notes': 'Matt Budget 2026: $66k Creative — even spread',
+        'monthly_values': [14150, 12375, 11323, 21525, 22333.75, 19600, 22280, 22280, 22280, 20680, 20680, 20680],
+        'notes': 'Brand/GTM/CMM/Email/SEO/Organic Social/Perf Mkt mgmt (Matt 2026 Budget R76)',
     },
     {
-        'expense_name': 'FSG Channel',
+        'expense_name': 'Marketing Channels — Creative',
         'category': 'Sales & Marketing',
-        'monthly_values': [2166.67, 2166.67, 2166.67, 2166.67, 2166.67, 2166.67, 2166.67, 2166.67, 2166.67, 2166.67, 2166.67, 2166.67],
-        'notes': 'Matt Budget 2026: $26k Channel — even spread',
+        'monthly_values': [0, 0, 1425, 1000, 1600, 4540, 5040, 4540, 5040, 4540, 5040, 4540],
+        'notes': 'Email/SEO/Perf Mkt creative production (Matt 2026 Budget R77)',
     },
     {
-        'expense_name': 'Perf. Marketing (Ad Spend)',
+        'expense_name': 'Marketing Channels — Spend',
         'category': 'Sales & Marketing',
-        'monthly_values': [8750, 8750, 8750, 8750, 8750, 8750, 8750, 8750, 8750, 8750, 8750, 8750],
-        'notes': 'Matt Budget 2026: $105k Marketing — even spread',
+        'monthly_values': [0, 0, 0, 0, 0, 10640, 15768, 15896, 10896, 8768, 21152, 21152],
+        'notes': 'Performance media buy + Direct Mail send costs (Matt 2026 Budget R78)',
     },
     {
-        'expense_name': 'Affiliate Costs',
-        'category': 'Sales & Marketing',
-        'monthly_values': [0, 0, 0, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000],
-        'notes': 'Affiliate platform commissions - starts Apr',
-    },
-    {
-        'expense_name': 'Shopify',
+        'expense_name': 'Marketing Channels — Systems',
         'category': 'Systems & Software',
-        'monthly_values': [2850, 2850, 2850, 2850, 2850, 2850, 2850, 2850, 2850, 2850, 2850, 2850],
-        'notes': 'E-commerce platform',
+        'monthly_values': [0, 0, 0, 0, 0, 90, 90, 90, 90, 90, 90, 90],
+        'notes': 'PostPilot system fee (Matt 2026 Budget R79)',
     },
     {
-        'expense_name': 'Klaviyo',
-        'category': 'Systems & Software',
-        'monthly_values': [2500, 2500, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250],
-        'notes': 'ESP/CRM - migrates from Mailchimp in Mar (cost drops)',
+        'expense_name': 'Channel — Mgmt',
+        'category': 'Sales & Marketing',
+        'monthly_values': [0, 6100, 4750, 3291, 2250, 1000, 1000, 1000, 1000, 1000, 1000, 1000],
+        'notes': 'Website management (Matt 2026 Budget R90)',
     },
     {
-        'expense_name': 'Yotpo',
-        'category': 'Systems & Software',
-        'monthly_values': [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100],
-        'notes': 'Reviews platform',
+        'expense_name': 'Channel — Creative',
+        'category': 'Sales & Marketing',
+        'monthly_values': [0, 0, 3900, 3125, 1100, 1100, 1100, 1100, 0, 0, 0, 0],
+        'notes': 'Website digital design + copy (Matt 2026 Budget R91)',
     },
     {
-        'expense_name': 'UpPromote',
+        'expense_name': 'Channel — Systems',
         'category': 'Systems & Software',
-        'monthly_values': [250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250],
-        'notes': 'Affiliate platform',
+        'monthly_values': [0, 2200, 150, 2403, 1600, 100, 100, 100, 100, 100, 100, 100],
+        'notes': 'Website development + Yotpo + A/B testing (Matt 2026 Budget R92)',
+    },
+    {
+        'expense_name': 'General Systems',
+        'category': 'Systems & Software',
+        'monthly_values': [0, 0, 2500, 3009, 3009, 3009, 3009, 3009, 509, 509, 509, 509],
+        'notes': 'Shopify (Mar-Aug) + Loop Returns + Yotpo (Matt 2026 Budget R103)',
     },
 ]
 

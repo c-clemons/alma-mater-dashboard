@@ -216,10 +216,16 @@ BASELINE_OPEX_MONTHLY = [
         'notes': 'Website development + Yotpo + A/B testing (Matt 2026 Budget R92)',
     },
     {
-        'expense_name': 'General Systems',
+        'expense_name': 'General Systems — Loop+Yotpo',
         'category': 'Systems & Software',
-        'monthly_values': [0, 0, 2500, 3009, 3009, 3009, 3009, 3009, 509, 509, 509, 509],
-        'notes': 'Shopify (Mar-Aug) + Loop Returns + Yotpo (Matt 2026 Budget R103)',
+        'monthly_values': [0, 0, 0, 509, 509, 509, 509, 509, 509, 509, 509, 509],
+        'notes': 'Loop Returns ($340) + Yotpo ($169) Apr-Dec (Matt 2026 Budget R101+R102)',
+    },
+    {
+        'expense_name': 'General Systems — Shopify (old assumption)',
+        'category': 'Systems & Software',
+        'monthly_values': [2850, 2850, 2850, 2850, 2850, 2850, 2850, 2850, 2850, 2850, 2850, 2850],
+        'notes': 'Using our $2,850/mo flat — Matt 2026 Budget showed $2,500 Mar-Aug only ($15K). Confirm with Matt.',
     },
 ]
 

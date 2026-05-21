@@ -347,8 +347,11 @@ def show():
                 dtc_demand, year, prior_ending=prior_ending,
             )
 
-            # Constrained revenue
-            constr = calculate_constrained_dtc_revenue(inv_balance)
+            # Constrained revenue (with Matt's monthly blended AOV per year)
+            from financial_calcs import get_monthly_aov
+            constr = calculate_constrained_dtc_revenue(
+                inv_balance, monthly_aov=get_monthly_aov(year)
+            )
 
             # Unconstrained revenue (demand * AOV)
             unconstr_rev, _ = calculate_dtc_revenue_monthly(year, 0.0, 0.0)

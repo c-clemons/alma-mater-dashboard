@@ -290,18 +290,39 @@ def get_cogs_breakdown(revenue: float, year: int = 2026, channel: str = 'DTC') -
 # ============================================================
 
 def get_dtc_demand_units(year: int = 2026) -> Dict[str, List[int]]:
-    """Get raw DTC demand units by product for a given year."""
+    """Get raw DTC demand units by product for a given year.
+
+    Updated May 21, 2026 per Matt's monthly forecast: Beta/Alpha allocations
+    derived by applying his monthly orders to current Beta:Alpha ratios.
+    2026 totals to 2,247 units, 2027 totals to 3,610 units.
+    """
     if year == 2026:
         return {
-            "Beta": [10, 20, 30, 50, 100, 150, 200, 225, 250, 275, 300, 325],
-            "Alpha": [0, 0, 0, 0, 0, 0, 50, 100, 200, 300, 300, 0],
+            "Beta": [27, 35, 91, 134, 195, 288, 238, 125, 87, 86, 198, 267],
+            "Alpha": [0, 0, 0, 0, 0, 0, 60, 55, 69, 94, 198, 0],
         }
     elif year == 2027:
         return {
-            "Beta": [350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900],
-            "Alpha": [300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850],
+            "Beta": [45, 60, 114, 189, 207, 207, 206, 166, 149, 140, 227, 170],
+            "Alpha": [39, 52, 102, 171, 189, 189, 190, 154, 139, 132, 213, 160],
         }
     return {"Beta": [0]*12, "Alpha": [0]*12}
+
+
+def get_monthly_aov(year: int = 2026) -> List[float]:
+    """Get monthly blended AOV array (Matt's Shopify-based forecast, gross).
+
+    Both Beta and Alpha share the same monthly AOV — this is the conservative
+    Shopify-blended estimate from Matt's Forecast tab. Matt's note: "I like to
+    keep AOV conservative so there isn't added pressure on Traffic and CVR."
+
+    Added May 21, 2026.
+    """
+    if year == 2026:
+        return [551, 362, 407, 300, 300, 300, 300, 300, 300, 300, 300, 300]
+    elif year == 2027:
+        return [350, 350, 375, 425, 450, 450, 450, 425, 425, 425, 400, 400]
+    return [300] * 12
 
 
 def calculate_po_arrivals(po_data: List[Dict], lead_time: int, year: int) -> Dict[str, Dict[int, int]]:
@@ -422,8 +443,14 @@ def calculate_constrained_dtc_revenue(
     alpha_aov: float = 450,
     discount_rate: float = 0.0,
     return_rate: float = 0.0,
+    monthly_aov: List[float] = None,
 ) -> Dict[str, Dict[int, float]]:
     """Calculate constrained DTC revenue from inventory-limited sales.
+
+    If `monthly_aov` (12 values) is provided, both Beta and Alpha use the same
+    monthly blended AOV (Matt's Shopify-based forecast). Otherwise falls back
+    to per-product fixed AOVs (legacy $250/$450).
+
     Returns {"gross": {1:..., 12:...}, "net": {1:..., 12:...}}
     """
     gross = {}
@@ -431,7 +458,12 @@ def calculate_constrained_dtc_revenue(
     for m in range(1, 13):
         beta_sales = inventory_balance["Beta"]["dtc_sales"][m - 1]
         alpha_sales = inventory_balance["Alpha"]["dtc_sales"][m - 1]
-        g = beta_sales * beta_aov + alpha_sales * alpha_aov
+        if monthly_aov is not None:
+            # Matt's monthly blended AOV — apply same AOV to both products
+            g = (beta_sales + alpha_sales) * monthly_aov[m - 1]
+        else:
+            # Legacy per-product AOV
+            g = beta_sales * beta_aov + alpha_sales * alpha_aov
         n = g * (1 - discount_rate) * (1 - return_rate)
         gross[m] = g
         net[m] = n
@@ -500,8 +532,12 @@ def generate_monthly_pl(
         )
         beta_aov = inventory_config.get('beta_aov', 250)
         alpha_aov = inventory_config.get('alpha_aov', 450)
+        # Per Matt's monthly forecast (May 21, 2026): use blended monthly AOV
+        # instead of fixed Beta $250 / Alpha $450. Falls back to fixed if missing.
+        monthly_aov = inventory_config.get('monthly_aov') or get_monthly_aov(year)
         constr_rev = calculate_constrained_dtc_revenue(
             inv_balance, beta_aov, alpha_aov, dtc_discount_rate, dtc_return_rate,
+            monthly_aov=monthly_aov,
         )
         # Build DTC dicts from constrained revenue
         dtc_revenue = constr_rev["net"]

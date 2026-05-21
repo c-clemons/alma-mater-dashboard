@@ -84,11 +84,20 @@ def calculate_opex_monthly(opex_expenses: List[Dict], year: int = 2026) -> Dict[
     Supports 'Custom Monthly' items with per-month values (from Matt Econ Roadmap)
     as well as Monthly, Quarterly, Annual, and One-Time frequencies.
 
+    Year filtering (Phase 3, May 21 2026): items with an `applies_to_year` field
+    are only included when that field matches `year`. Items WITHOUT the field
+    apply to any year (backward-compat for user custom expenses and legacy data).
+
     Returns: Dict of {month: total_cost}
     """
     monthly_costs = {month: 0.0 for month in range(1, 13)}
 
     for expense in opex_expenses:
+        # Year filter: skip if item is tagged for a different year
+        applies_to = expense.get('applies_to_year')
+        if applies_to is not None and applies_to != year:
+            continue
+
         frequency = expense.get('frequency', 'Monthly')
 
         # Custom Monthly: each month has its own value (from baseline_data)

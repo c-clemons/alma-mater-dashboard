@@ -270,10 +270,109 @@ BASELINE_OPEX_ANNUAL = [
 ]
 
 
+# ============================================================
+# 2027 BASELINE OPEX — Phase 3 (May 21, 2026)
+# Source: Matt's monthly file (AM 26-28 Marketing_Ecom Budget_Monthly.xlsx)
+# Aggregated to 7-line Section × Cost Type structure
+# ============================================================
+BASELINE_OPEX_MONTHLY_2027 = [
+    {
+        'expense_name': 'Brand Creative — Creative',
+        'category': 'Sales & Marketing',
+        'monthly_values': [18500, 32000, 17000, 18500, 32000, 17000, 18500, 32000, 17000, 33500, 17000, 17000],
+        'notes': 'Photo/Video, UGC, Copywriting, Image Proc, Digital Design (Matt 2027 R30-R37)',
+    },
+    {
+        'expense_name': 'Marketing Channels — Mgmt',
+        'category': 'Sales & Marketing',
+        'monthly_values': [40000] * 12,
+        'notes': '7 agency mgmt roles: Creative Lead, Marketing Lead, CRM, SEO/AIO, Organic Social, Perf Mkt, Community (Matt 2027 R13-R21)',
+    },
+    {
+        'expense_name': 'Marketing Channels — Spend',
+        'category': 'Sales & Marketing',
+        'monthly_values': [15000, 20000, 26000, 33000, 38000, 38000, 38000, 31000, 31000, 20000, 44000, 44000],
+        'notes': 'Performance Marketing $299k + PostPilot $79k (Matt 2027 R48+R51)',
+    },
+    {
+        'expense_name': 'Channel — Mgmt',
+        'category': 'Sales & Marketing',
+        'monthly_values': [5000] * 12,
+        'notes': 'eCommerce Mgmt $5K/mo (Matt 2027 R23)',
+    },
+    {
+        'expense_name': 'Channel — Creative+Systems',
+        'category': 'Sales & Marketing',
+        'monthly_values': [2000, 4000, 2000, 4000, 2000, 4000, 2000, 4000, 2000, 4000, 2000, 4000],
+        'notes': 'UX Design $12K + Development $24K (Matt 2027 R63+R64)',
+    },
+    {
+        'expense_name': 'General Systems — Loop+Yotpo',
+        'category': 'Systems & Software',
+        'monthly_values': [0, 0, 0, 509, 509, 509, 509, 509, 509, 509, 509, 509],
+        'notes': 'Carry-forward from 2026 (Matt did not update for 2027)',
+    },
+    {
+        'expense_name': 'General Systems — Shopify (old assumption)',
+        'category': 'Systems & Software',
+        'monthly_values': [2850] * 12,
+        'notes': 'Our $2,850/mo flat — pending Matt confirmation on his Mar-Aug pattern',
+    },
+]
+
+
+# 2027 annual-input items (from Excel R145-R150)
+BASELINE_OPEX_ANNUAL_2027 = [
+    {
+        'expense_name': 'Travel & Entertainment',
+        'category': 'Travel & Entertainment',
+        'annual_cost': 40000.00,
+        'notes': 'Fixed annual budget for 2027',
+    },
+    {
+        'expense_name': 'Development & Innovation',
+        'category': 'Research & Development',
+        'annual_cost': 50000.00,
+        'notes': 'Fixed annual budget for 2027',
+    },
+    {
+        'expense_name': 'Postage & Shipping',
+        'category': 'Other',
+        'annual_cost': 40000.00,
+        'notes': 'Fixed annual budget for 2027',
+    },
+    {
+        'expense_name': 'Service Charges',
+        'category': 'Professional Services',
+        'annual_cost': 7500.00,
+        'notes': 'Fixed annual budget for 2027',
+    },
+    {
+        'expense_name': 'Phone Services',
+        'category': 'Systems & Software',
+        'annual_cost': 2000.00,
+        'notes': 'Fixed annual budget for 2027',
+    },
+    {
+        'expense_name': 'Other Operating',
+        'category': 'Other',
+        'annual_cost': 15000.00,
+        'notes': 'Fixed annual budget for 2027',
+    },
+]
+
+
 def _build_opex_list():
     """Convert the monthly + annual OpEx items into the flat list format
-    expected by the rest of the app (session state / data persistence)."""
+    expected by the rest of the app (session state / data persistence).
+
+    Each item is tagged with `applies_to_year` (2026 or 2027). The OpEx
+    calculator in financial_calcs.py filters by this when generating a
+    year-specific P&L. Items without `applies_to_year` are treated as
+    universal (legacy/user custom items).
+    """
     result = []
+    # 2026 items
     for item in BASELINE_OPEX_MONTHLY:
         annual = sum(item['monthly_values'])
         result.append({
@@ -282,10 +381,11 @@ def _build_opex_list():
             'vendor': '',
             'frequency': 'Custom Monthly',
             'monthly_values': item['monthly_values'],
-            'monthly_amount': annual / 12,  # average for display
+            'monthly_amount': annual / 12,
             'annual_cost': annual,
             'start_date': '2026-01-01',
-            'end_date': None,
+            'end_date': '2026-12-31',
+            'applies_to_year': 2026,
             'growth_rate': 0.0,
             'notes': item['notes'],
             'created_at': '2026-01-01T00:00:00',
@@ -299,10 +399,44 @@ def _build_opex_list():
             'monthly_amount': item['annual_cost'] / 12,
             'annual_cost': item['annual_cost'],
             'start_date': '2026-01-01',
-            'end_date': None,
+            'end_date': '2026-12-31',
+            'applies_to_year': 2026,
             'growth_rate': 0.0,
             'notes': item['notes'],
             'created_at': '2026-01-01T00:00:00',
+        })
+    # 2027 items (Phase 3 — Matt's monthly file)
+    for item in BASELINE_OPEX_MONTHLY_2027:
+        annual = sum(item['monthly_values'])
+        result.append({
+            'expense_name': item['expense_name'],
+            'category': item['category'],
+            'vendor': '',
+            'frequency': 'Custom Monthly',
+            'monthly_values': item['monthly_values'],
+            'monthly_amount': annual / 12,
+            'annual_cost': annual,
+            'start_date': '2027-01-01',
+            'end_date': '2027-12-31',
+            'applies_to_year': 2027,
+            'growth_rate': 0.0,
+            'notes': item['notes'],
+            'created_at': '2026-05-21T00:00:00',
+        })
+    for item in BASELINE_OPEX_ANNUAL_2027:
+        result.append({
+            'expense_name': item['expense_name'],
+            'category': item['category'],
+            'vendor': '',
+            'frequency': 'Annual',
+            'monthly_amount': item['annual_cost'] / 12,
+            'annual_cost': item['annual_cost'],
+            'start_date': '2027-01-01',
+            'end_date': '2027-12-31',
+            'applies_to_year': 2027,
+            'growth_rate': 0.0,
+            'notes': item['notes'],
+            'created_at': '2026-05-21T00:00:00',
         })
     return result
 

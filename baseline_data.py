@@ -588,8 +588,12 @@ RIPPLING_BURDENS = {
 }
 
 
-# BASELINE WHOLESALE DEALS (2026 Projections from Client)
+# BASELINE WHOLESALE DEALS (2026-2028)
+# Synced with Excel model Assumptions tab R88-R96 as of May 21, 2026
+# 2028 deals are placeholder = doubled from 2027 per user direction;
+# will be revised when wholesale team provides input
 BASELINE_WHOLESALE = [
+    # ---- 2026 ----
     {
         'customer_name': 'Total WS Spring 26',
         'product_type': 'Beta',
@@ -599,7 +603,7 @@ BASELINE_WHOLESALE = [
         'close_date': '2026-03-01',
         'delivery_date': '2026-03-15',
         'sales_commission': 0.00,
-        'total_cost': 77770.00,  # From client data
+        'total_cost': 77770.00,
         'units_produced': 1400,
         'doors': 33,
         'notes': 'Spring 2026 - 500 units @ 33 doors',
@@ -614,11 +618,103 @@ BASELINE_WHOLESALE = [
         'close_date': '2026-08-01',
         'delivery_date': '2026-08-15',
         'sales_commission': 0.00,
-        'total_cost': 138875.00,  # From client data
+        'total_cost': 138875.00,
         'units_produced': 2500,
         'doors': 80,
         'notes': 'Fall 2026 - 1,500 units @ 80 doors',
         'created_at': '2026-01-01T00:00:00',
+    },
+    # ---- 2027 (sync from Excel — was missing) ----
+    {
+        'customer_name': 'Total WS Spring 27',
+        'product_type': 'Beta',
+        'order_type': 'In-Line',
+        'num_pairs': 2500,
+        'wholesale_price': 144.00,
+        'close_date': '2027-03-01',
+        'delivery_date': '2027-03-15',
+        'sales_commission': 0.00,
+        'total_cost': 166650.00,
+        'units_produced': 0,
+        'doors': 125,
+        'notes': 'Spring 2027 - 2,500 units @ 125 doors',
+        'created_at': '2026-05-21T00:00:00',
+    },
+    {
+        'customer_name': 'Total WS Fall 27 (Beta)',
+        'product_type': 'Beta',
+        'order_type': 'In-Line',
+        'num_pairs': 4000,
+        'wholesale_price': 144.00,
+        'close_date': '2027-08-01',
+        'delivery_date': '2027-08-15',
+        'sales_commission': 0.00,
+        'total_cost': 277750.00,
+        'units_produced': 0,
+        'doors': 200,
+        'notes': 'Fall 2027 - 4,000 units @ 200 doors',
+        'created_at': '2026-05-21T00:00:00',
+    },
+    {
+        'customer_name': 'Total WS Fall 27 (Alpha)',
+        'product_type': 'Alpha',
+        'order_type': 'In-Line',
+        'num_pairs': 800,
+        'wholesale_price': 244.00,
+        'close_date': '2027-09-01',
+        'delivery_date': '2027-09-15',
+        'sales_commission': 0.00,
+        'total_cost': 168150.00,
+        'units_produced': 0,
+        'doors': 100,
+        'notes': 'Fall 2027 - 800 units @ 100 doors (Alpha launch)',
+        'created_at': '2026-05-21T00:00:00',
+    },
+    # ---- 2028 (placeholder = 2027 × 2; revise when wholesale team weighs in) ----
+    {
+        'customer_name': 'Total WS Spring 28',
+        'product_type': 'Beta',
+        'order_type': 'In-Line',
+        'num_pairs': 5000,
+        'wholesale_price': 144.00,
+        'close_date': '2028-03-01',
+        'delivery_date': '2028-03-15',
+        'sales_commission': 0.00,
+        'total_cost': 333300.00,
+        'units_produced': 0,
+        'doors': 250,
+        'notes': 'Spring 2028 - 5,000 units @ 250 doors (2× 2027 placeholder)',
+        'created_at': '2026-05-21T00:00:00',
+    },
+    {
+        'customer_name': 'Total WS Fall 28 (Beta)',
+        'product_type': 'Beta',
+        'order_type': 'In-Line',
+        'num_pairs': 8000,
+        'wholesale_price': 144.00,
+        'close_date': '2028-08-01',
+        'delivery_date': '2028-08-15',
+        'sales_commission': 0.00,
+        'total_cost': 555500.00,
+        'units_produced': 0,
+        'doors': 400,
+        'notes': 'Fall 2028 - 8,000 units @ 400 doors (2× 2027 placeholder)',
+        'created_at': '2026-05-21T00:00:00',
+    },
+    {
+        'customer_name': 'Total WS Fall 28 (Alpha)',
+        'product_type': 'Alpha',
+        'order_type': 'In-Line',
+        'num_pairs': 1600,
+        'wholesale_price': 244.00,
+        'close_date': '2028-09-01',
+        'delivery_date': '2028-09-15',
+        'sales_commission': 0.00,
+        'total_cost': 336300.00,
+        'units_produced': 0,
+        'doors': 200,
+        'notes': 'Fall 2028 - 1,600 units @ 200 doors (2× 2027 placeholder)',
+        'created_at': '2026-05-21T00:00:00',
     },
 ]
 

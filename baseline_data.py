@@ -767,6 +767,13 @@ BASELINE_PO_DATA = [
     {"name": "Fall 2027 (Alpha)", "product": "Alpha", "pairs": 3000, "amount": 165000, "order_month": 2, "order_year": 2027},
     {"name": "Holiday 2027 (Beta)", "product": "Beta", "pairs": 3000, "amount": 135000, "order_month": 5, "order_year": 2027},
     {"name": "Holiday 2027 (Alpha)", "product": "Alpha", "pairs": 2000, "amount": 110000, "order_month": 5, "order_year": 2027},
+    # 2028 POs (placeholder — sized to cover doubled 2028 WS + DTC demand)
+    {"name": "Spring 2028 (Beta)",  "product": "Beta",  "pairs": 6000, "amount": 270000, "order_month": 11, "order_year": 2027},
+    {"name": "Summer 2028 (Beta)",  "product": "Beta",  "pairs": 5000, "amount": 225000, "order_month": 2,  "order_year": 2028},
+    {"name": "Fall 2028 (Beta)",    "product": "Beta",  "pairs": 8000, "amount": 360000, "order_month": 5,  "order_year": 2028},
+    {"name": "Spring 2028 (Alpha)", "product": "Alpha", "pairs": 1500, "amount": 82500,  "order_month": 11, "order_year": 2027},
+    {"name": "Summer 2028 (Alpha)", "product": "Alpha", "pairs": 2000, "amount": 110000, "order_month": 2,  "order_year": 2028},
+    {"name": "Fall 2028 (Alpha)",   "product": "Alpha", "pairs": 2500, "amount": 137500, "order_month": 5,  "order_year": 2028},
 ]
 
 BASELINE_INVENTORY_CONFIG = {

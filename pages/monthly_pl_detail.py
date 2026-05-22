@@ -134,17 +134,35 @@ def show():
         team_members=team_members,
         opex_expenses=opex_expenses,
         wholesale_deals=wholesale_deals,
-        dtc_discount_rate=0.0,
-        dtc_return_rate=0.0
+        dtc_discount_rate=0.05,
+        dtc_return_rate=0.20,
+    )
+    df_2027_forecast = generate_monthly_pl(
+        year=2027,
+        team_members=team_members,
+        opex_expenses=opex_expenses,
+        wholesale_deals=wholesale_deals,
+        dtc_discount_rate=0.05,
+        dtc_return_rate=0.20,
+    )
+    df_2028_forecast = generate_monthly_pl(
+        year=2028,
+        team_members=team_members,
+        opex_expenses=opex_expenses,
+        wholesale_deals=wholesale_deals,
+        dtc_discount_rate=0.05,
+        dtc_return_rate=0.20,
     )
 
     # Get actuals
     df_2025, source_25 = get_2025_actuals()
     df_2026_actual, last_actual_month = get_2026_actuals()
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab2b, tab2c, tab3, tab4, tab5 = st.tabs([
         "2025 Actuals",
         "2026 Forecast",
+        "2027 Forecast",
+        "2028 Forecast",
         "Variance Analysis",
         "Year Comparison",
         "Assumptions Breakdown",
@@ -213,6 +231,74 @@ def show():
 
         csv = df_2026_forecast.to_csv(index=False)
         st.download_button("Download 2026 Data (CSV)", csv, "2026_monthly_pl.csv", "text/csv")
+
+    # --- TAB 2b: 2027 FORECAST ---
+    with tab2b:
+        st.markdown("### 2027 Monthly Forecast (Integrated)")
+        st.caption("Source: Matt's Forecast tab (monthly orders + AOV) + new 16-line OpEx structure")
+
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Total Revenue", f"${df_2027_forecast['Total Revenue'].sum():,.0f}")
+        with col2:
+            st.metric("Avg Monthly Revenue", f"${df_2027_forecast['Total Revenue'].mean():,.0f}")
+        with col3:
+            tr = df_2027_forecast['Total Revenue'].sum()
+            gm = (df_2027_forecast['Gross Profit'].sum() / tr * 100) if tr else 0
+            st.metric("Gross Margin", f"{gm:.1f}%")
+        with col4:
+            st.metric("Total EBITDA", f"${df_2027_forecast['EBITDA'].sum():,.0f}")
+
+        st.divider()
+        st.plotly_chart(
+            make_pl_chart(df_2027_forecast, '2027 Monthly Performance', has_team_costs=True),
+            use_container_width=True
+        )
+
+        st.markdown("### Monthly Data Table")
+        key_cols_27 = ['DTC Revenue', 'Wholesale Revenue', 'Total Revenue', 'Total COGS',
+                       'Gross Profit', 'Team Costs', 'Other OpEx', 'Total OpEx', 'EBITDA']
+        transposed_27 = df_2027_forecast.set_index('Month')[key_cols_27].T
+        transposed_27_fmt = transposed_27.map(lambda x: f"${x:,.0f}")
+        st.dataframe(transposed_27_fmt, use_container_width=True)
+
+        csv = df_2027_forecast.to_csv(index=False)
+        st.download_button("Download 2027 Data (CSV)", csv, "2027_monthly_pl.csv", "text/csv")
+
+    # --- TAB 2c: 2028 FORECAST ---
+    with tab2c:
+        st.markdown("### 2028 Monthly Forecast (Integrated)")
+        st.caption("Source: Matt's Forecast tab (monthly orders + AOV) + Matt's 2028 monthly OpEx + 2× 2027 wholesale (placeholder)")
+
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Total Revenue", f"${df_2028_forecast['Total Revenue'].sum():,.0f}")
+        with col2:
+            st.metric("Avg Monthly Revenue", f"${df_2028_forecast['Total Revenue'].mean():,.0f}")
+        with col3:
+            tr = df_2028_forecast['Total Revenue'].sum()
+            gm = (df_2028_forecast['Gross Profit'].sum() / tr * 100) if tr else 0
+            st.metric("Gross Margin", f"{gm:.1f}%")
+        with col4:
+            st.metric("Total EBITDA", f"${df_2028_forecast['EBITDA'].sum():,.0f}")
+
+        st.divider()
+        st.plotly_chart(
+            make_pl_chart(df_2028_forecast, '2028 Monthly Performance', has_team_costs=True),
+            use_container_width=True
+        )
+
+        st.markdown("### Monthly Data Table")
+        key_cols_28 = ['DTC Revenue', 'Wholesale Revenue', 'Total Revenue', 'Total COGS',
+                       'Gross Profit', 'Team Costs', 'Other OpEx', 'Total OpEx', 'EBITDA']
+        transposed_28 = df_2028_forecast.set_index('Month')[key_cols_28].T
+        transposed_28_fmt = transposed_28.map(lambda x: f"${x:,.0f}")
+        st.dataframe(transposed_28_fmt, use_container_width=True)
+
+        csv = df_2028_forecast.to_csv(index=False)
+        st.download_button("Download 2028 Data (CSV)", csv, "2028_monthly_pl.csv", "text/csv")
+
+        st.info("**Note:** 2028 placeholders need wholesale team input (currently 2× 2027) + Matt's 2028 annual-input items review.")
 
     # --- TAB 3: VARIANCE ANALYSIS ---
     with tab3:

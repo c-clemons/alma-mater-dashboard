@@ -252,7 +252,21 @@ def calculate_dtc_revenue_monthly(year: int = 2026, discount_rate: float = 0.0, 
             final_revenue = net_revenue * (1 - return_rate)
             monthly_revenue[month] = final_revenue
             monthly_cogs[month] = gross_revenue * cogs_rate
-    
+
+    elif year == 2028:
+        # 2028 Forecast from Matt's Forecast tab (R34-R47)
+        # Total: 5,507 orders × $432.93 blended AOV = $2,384,150 revenue
+        orders   = [147, 192, 285, 484, 648, 648, 648, 528, 432, 340, 660, 495]
+        monthly_aov = [400, 400, 450, 450, 450, 450, 450, 450, 425, 425, 400, 400]
+        cogs_rate = 0.40
+
+        for month in range(1, 13):
+            gross_revenue = orders[month-1] * monthly_aov[month-1]
+            net_revenue = gross_revenue * (1 - discount_rate)
+            final_revenue = net_revenue * (1 - return_rate)
+            monthly_revenue[month] = final_revenue
+            monthly_cogs[month] = gross_revenue * cogs_rate
+
     return monthly_revenue, monthly_cogs
 
 
@@ -315,6 +329,14 @@ def get_dtc_demand_units(year: int = 2026) -> Dict[str, List[int]]:
             "Beta": [45, 60, 114, 189, 207, 207, 206, 166, 149, 140, 227, 170],
             "Alpha": [39, 52, 102, 171, 189, 189, 190, 154, 139, 132, 213, 160],
         }
+    elif year == 2028:
+        # 2028 Beta/Alpha allocation: applied 2027 monthly Beta:Alpha ratios to
+        # Matt's 2028 monthly orders. Beta share ranges ~51-54% across months.
+        # Totals: Beta 2,869 + Alpha 2,638 = 5,507 (matches Matt's 2028 forecast)
+        return {
+            "Beta":  [79, 103, 150, 254, 339, 339, 337, 274, 224, 175, 340, 255],
+            "Alpha": [68,  89, 135, 230, 309, 309, 311, 254, 208, 165, 320, 240],
+        }
     return {"Beta": [0]*12, "Alpha": [0]*12}
 
 
@@ -331,6 +353,8 @@ def get_monthly_aov(year: int = 2026) -> List[float]:
         return [551, 362, 407, 300, 300, 300, 300, 300, 300, 300, 300, 300]
     elif year == 2027:
         return [350, 350, 375, 425, 450, 450, 450, 425, 425, 425, 400, 400]
+    elif year == 2028:
+        return [400, 400, 450, 450, 450, 450, 450, 450, 425, 425, 400, 400]
     return [300] * 12
 
 

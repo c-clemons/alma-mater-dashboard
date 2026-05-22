@@ -151,8 +151,8 @@ def show():
                         key=f"po_mo_{i}",
                     )
                     po['order_year'] = st.selectbox(
-                        "Order Year", [2026, 2027],
-                        index=0 if po.get('order_year', 2026) == 2026 else 1,
+                        "Order Year", [2026, 2027, 2028],
+                        index={2026: 0, 2027: 1, 2028: 2}.get(po.get('order_year', 2026), 0),
                         key=f"po_yr_{i}",
                     )
 
@@ -217,27 +217,20 @@ def show():
             "Alpha": config.get('beg_inv_alpha', 500),
         }
 
-        for year in [2026, 2027]:
-            st.markdown(f"#### {year}")
-
-            dtc_demand = get_dtc_demand_units(year)
-
-            if year == 2027:
-                # Use 2026 ending inventory as prior
-                inv_2026 = calculate_inventory_balance(
-                    po_data, wholesale_deals, lead_time, beg_inv,
-                    get_dtc_demand_units(2026), 2026,
-                )
-                prior_ending = {
-                    p: inv_2026[p]["ending"][-1] for p in ["Beta", "Alpha"]
-                }
-            else:
-                prior_ending = None
-
-            inv_balance = calculate_inventory_balance(
+        # Pre-compute inventory balances for all years in sequence
+        # (each year's prior_ending = previous year's ending inventory)
+        inv_by_year = {}
+        _prior = None
+        for _y in [2026, 2027, 2028]:
+            inv_by_year[_y] = calculate_inventory_balance(
                 po_data, wholesale_deals, lead_time, beg_inv,
-                dtc_demand, year, prior_ending=prior_ending,
+                get_dtc_demand_units(_y), _y, prior_ending=_prior,
             )
+            _prior = {p: inv_by_year[_y][p]["ending"][-1] for p in ["Beta", "Alpha"]}
+
+        for year in [2026, 2027, 2028]:
+            st.markdown(f"#### {year}")
+            inv_balance = inv_by_year[year]
 
             for product in ["Beta", "Alpha"]:
                 st.markdown(f"**{product}**")
@@ -278,20 +271,31 @@ def show():
         # Ending inventory chart
         st.markdown("### Ending Inventory Over Time")
 
-        # Build 24-month series
-        inv_2026 = calculate_inventory_balance(
-            po_data, wholesale_deals, lead_time, beg_inv,
-            get_dtc_demand_units(2026), 2026,
-        )
-        prior_end = {p: inv_2026[p]["ending"][-1] for p in ["Beta", "Alpha"]}
-        inv_2027 = calculate_inventory_balance(
-            po_data, wholesale_deals, lead_time, beg_inv,
-            get_dtc_demand_units(2027), 2027, prior_ending=prior_end,
-        )
+        # Build 36-month series chained across 2026 → 2027 → 2028
+        _inv_chain = {}
+        _prior_c = None
+        for _y in [2026, 2027, 2028]:
+            _inv_chain[_y] = calculate_inventory_balance(
+                po_data, wholesale_deals, lead_time, beg_inv,
+                get_dtc_demand_units(_y), _y, prior_ending=_prior_c,
+            )
+            _prior_c = {p: _inv_chain[_y][p]["ending"][-1] for p in ["Beta", "Alpha"]}
 
-        months_labels = [f"{MONTHS[m]} 26" for m in range(12)] + [f"{MONTHS[m]} 27" for m in range(12)]
-        beta_ending = inv_2026["Beta"]["ending"] + inv_2027["Beta"]["ending"]
-        alpha_ending = inv_2026["Alpha"]["ending"] + inv_2027["Alpha"]["ending"]
+        months_labels = (
+            [f"{MONTHS[m]} 26" for m in range(12)] +
+            [f"{MONTHS[m]} 27" for m in range(12)] +
+            [f"{MONTHS[m]} 28" for m in range(12)]
+        )
+        beta_ending = (
+            _inv_chain[2026]["Beta"]["ending"] +
+            _inv_chain[2027]["Beta"]["ending"] +
+            _inv_chain[2028]["Beta"]["ending"]
+        )
+        alpha_ending = (
+            _inv_chain[2026]["Alpha"]["ending"] +
+            _inv_chain[2027]["Alpha"]["ending"] +
+            _inv_chain[2028]["Alpha"]["ending"]
+        )
 
         fig = go.Figure()
         fig.add_trace(go.Scatter(
@@ -306,7 +310,7 @@ def show():
         ))
         fig.add_hline(y=0, line_dash="dash", line_color="red")
         fig.update_layout(
-            title="Ending Inventory by Product (2026-2027)",
+            title="Ending Inventory by Product (2026-2028)",
             yaxis_title="Units",
             height=400,
         )
@@ -328,24 +332,19 @@ def show():
             "Alpha": config.get('beg_inv_alpha', 500),
         }
 
-        for year in [2026, 2027]:
-            st.markdown(f"#### {year}")
-
-            dtc_demand = get_dtc_demand_units(year)
-
-            if year == 2027:
-                inv_2026 = calculate_inventory_balance(
-                    po_data, wholesale_deals, lead_time, beg_inv,
-                    get_dtc_demand_units(2026), 2026,
-                )
-                prior_ending = {p: inv_2026[p]["ending"][-1] for p in ["Beta", "Alpha"]}
-            else:
-                prior_ending = None
-
-            inv_balance = calculate_inventory_balance(
+        # Pre-compute inventory balances chained across all years
+        _inv_chain2 = {}
+        _prior2 = None
+        for _y in [2026, 2027, 2028]:
+            _inv_chain2[_y] = calculate_inventory_balance(
                 po_data, wholesale_deals, lead_time, beg_inv,
-                dtc_demand, year, prior_ending=prior_ending,
+                get_dtc_demand_units(_y), _y, prior_ending=_prior2,
             )
+            _prior2 = {p: _inv_chain2[_y][p]["ending"][-1] for p in ["Beta", "Alpha"]}
+
+        for year in [2026, 2027, 2028]:
+            st.markdown(f"#### {year}")
+            inv_balance = _inv_chain2[year]
 
             # Constrained revenue (with Matt's monthly blended AOV per year)
             from financial_calcs import get_monthly_aov
@@ -422,7 +421,7 @@ def show():
         pay_terms = config.get('payment_terms_months', 5)
 
         payment_rows = []
-        for year in [2026, 2027]:
+        for year in [2026, 2027, 2028]:
             payments = calculate_po_payments(po_data, lead_time, pay_terms, year)
             for m in range(1, 13):
                 if payments[m] > 0:
@@ -436,4 +435,4 @@ def show():
             pay_df['Payment'] = pay_df['Payment'].apply(lambda x: f"${x:,.0f}")
             st.dataframe(pay_df, use_container_width=True, hide_index=True)
         else:
-            st.info("No PO payments scheduled in 2026-2027.")
+            st.info("No PO payments scheduled in 2026-2028.")

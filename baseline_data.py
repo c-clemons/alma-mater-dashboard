@@ -276,35 +276,38 @@ BASELINE_OPEX_ANNUAL = [
 # Aggregated to 7-line Section × Cost Type structure
 # ============================================================
 BASELINE_OPEX_MONTHLY_2027 = [
+    # CORRECTED May 21: Phase 3 originally used Matt's Budget tab cols 20-31 which
+    # are labeled 2028 (per row-1 headers). Cols 5-16 are the correct 2027 monthly.
+    # Total: $985,781 (vs original incorrect $1,262,781)
     {
         'expense_name': 'Brand Creative — Creative',
         'category': 'Sales & Marketing',
-        'monthly_values': [18500, 32000, 17000, 18500, 32000, 17000, 18500, 32000, 17000, 33500, 17000, 17000],
-        'notes': 'Photo/Video, UGC, Copywriting, Image Proc, Digital Design (Matt 2027 R30-R37)',
+        'monthly_values': [34000, 12500, 12500, 29000, 12500, 12500, 14000, 12500, 27500, 14000, 12500, 12500],
+        'notes': 'Photo/Video, UGC, Copywriting, Image Proc, Digital Design (Matt 2027 file cols 5-16, R30-R37)',
     },
     {
         'expense_name': 'Marketing Channels — Mgmt',
         'category': 'Sales & Marketing',
-        'monthly_values': [40000] * 12,
-        'notes': '7 agency mgmt roles: Creative Lead, Marketing Lead, CRM, SEO/AIO, Organic Social, Perf Mkt, Community (Matt 2027 R13-R21)',
+        'monthly_values': [34000] * 12,
+        'notes': '7 agency mgmt roles ($34K/mo): Creative Lead $5K + Marketing Lead $5K + CRM $5K + SEO/AIO $3K + Organic Social $6K + Perf Mkt $6K + Community $4K (Matt 2027 R13-R21)',
     },
     {
         'expense_name': 'Marketing Channels — Spend',
         'category': 'Sales & Marketing',
-        'monthly_values': [15000, 20000, 26000, 33000, 38000, 38000, 38000, 31000, 31000, 20000, 44000, 44000],
-        'notes': 'Performance Marketing $299k + PostPilot $79k (Matt 2027 R48+R51)',
+        'monthly_values': [10000, 13000, 16000, 21000, 26000, 26000, 26000, 20000, 20000, 13000, 32000, 32000],
+        'notes': 'Performance Marketing $195k + PostPilot $60k (Matt 2027 R48+R51)',
     },
     {
         'expense_name': 'Channel — Mgmt',
         'category': 'Sales & Marketing',
-        'monthly_values': [5000] * 12,
-        'notes': 'eCommerce Mgmt $5K/mo (Matt 2027 R23)',
+        'monthly_values': [4000] * 12,
+        'notes': 'eCommerce Mgmt $4K/mo (Matt 2027 R23)',
     },
     {
         'expense_name': 'Channel — Creative+Systems',
         'category': 'Sales & Marketing',
-        'monthly_values': [2000, 4000, 2000, 4000, 2000, 4000, 2000, 4000, 2000, 4000, 2000, 4000],
-        'notes': 'UX Design $12K + Development $24K (Matt 2027 R63+R64)',
+        'monthly_values': [1000, 4000, 1000, 4000, 1000, 4000, 1000, 4000, 1000, 4000, 1000, 4000],
+        'notes': 'UX Design $12K + Development $18K (Matt 2027 R63+R64)',
     },
     {
         'expense_name': 'General Systems — Loop+Yotpo',

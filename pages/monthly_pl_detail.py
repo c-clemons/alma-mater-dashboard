@@ -134,7 +134,7 @@ def show():
         team_members=team_members,
         opex_expenses=opex_expenses,
         wholesale_deals=wholesale_deals,
-        dtc_discount_rate=0.05,
+        dtc_discount_rate=0.00,  # Matt's AOV already includes discounts — don't double-count
         dtc_return_rate=0.20,
     )
     df_2027_forecast = generate_monthly_pl(
@@ -142,7 +142,7 @@ def show():
         team_members=team_members,
         opex_expenses=opex_expenses,
         wholesale_deals=wholesale_deals,
-        dtc_discount_rate=0.05,
+        dtc_discount_rate=0.00,  # Matt's AOV already includes discounts — don't double-count
         dtc_return_rate=0.20,
     )
     df_2028_forecast = generate_monthly_pl(
@@ -150,7 +150,7 @@ def show():
         team_members=team_members,
         opex_expenses=opex_expenses,
         wholesale_deals=wholesale_deals,
-        dtc_discount_rate=0.05,
+        dtc_discount_rate=0.00,  # Matt's AOV already includes discounts — don't double-count
         dtc_return_rate=0.20,
     )
 

@@ -172,19 +172,29 @@ def show():
         fig_aov.update_layout(title='Monthly AOV', height=300, yaxis_tickformat='$,.0f')
         st.plotly_chart(fig_aov, use_container_width=True)
 
-        # Monthly detail table
-        st.markdown("### Monthly Detail")
-        detail_df = m_df[['month_name', 'orders', 'units', 'gross', 'discounts',
+        # Monthly detail table — Orders by channel
+        st.markdown("### Monthly Detail — Orders")
+        orders_df = m_df[['month_name', 'orders', 'units', 'gross', 'discounts',
                           'discount_rate', 'net', 'aov', 'dtc_orders', 'ws_orders',
                           'gift_orders']].copy()
-        detail_df.columns = ['Month', 'Orders', 'Units', 'Gross', 'Discounts',
+        orders_df.columns = ['Month', 'Orders', 'Units', 'Gross', 'Discounts',
                              'Disc %', 'Net Revenue', 'AOV', 'DTC', 'Wholesale', 'Gifting']
         # Display copy with formatting
-        display_df = detail_df.copy()
+        display_df = orders_df.copy()
         for col in ['Gross', 'Discounts', 'Net Revenue', 'AOV']:
             display_df[col] = display_df[col].apply(lambda x: f"${x:,.0f}")
         display_df['Disc %'] = display_df['Disc %'].apply(lambda x: f"{x:.0f}%")
         st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+        # Monthly detail table — Units by channel (NEW)
+        st.markdown("### Monthly Detail — Units by Channel")
+        st.caption("Units = total pairs/items inside orders (line_item quantities summed). Wholesale orders typically have many units per order.")
+        units_df = m_df[['month_name', 'orders', 'units', 'dtc_units', 'ws_units', 'gift_units']].copy()
+        units_df.columns = ['Month', 'Orders', 'Total Units', 'DTC Units', 'Wholesale Units', 'Gifting Units']
+        # Compute units/order ratio
+        units_df['Units/Order'] = (units_df['Total Units'] / units_df['Orders']).round(2)
+        units_df.loc[units_df['Orders'] == 0, 'Units/Order'] = 0
+        st.dataframe(units_df, use_container_width=True, hide_index=True)
 
         # ============================================================
         # Excel-friendly export (raw numbers, monthly DTC/WS/Gifting breakdown)
@@ -227,19 +237,29 @@ def show():
                 use_container_width=True,
             )
         with col2:
-            # Excel-paste-ready format: tab-separated, just DTC/WS/Gifting rows by month
+            # Excel-paste-ready format aligned to QBO Actuals R82-R93 structure:
+            # R82 = section header
+            # R83 = month headers
+            # R84-R87 = Orders block (DTC, WS, Gifting, Total formula)
+            # R89 = UNITS subsection header
+            # R90-R93 = Units block (DTC, WS, Gifting, Total formula)
             paste_lines = [
-                "Line Item\t" + "\t".join(m_dict['month_name'] for m_dict in monthly),
-                "DTC Orders\t" + "\t".join(str(m_dict['dtc_orders']) for m_dict in monthly),
-                "Wholesale Orders\t" + "\t".join(str(m_dict['ws_orders']) for m_dict in monthly),
-                "Gifting Orders\t" + "\t".join(str(m_dict['gift_orders']) for m_dict in monthly),
-                "DTC Units\t" + "\t".join(str(m_dict['dtc_units']) for m_dict in monthly),
-                "Wholesale Units\t" + "\t".join(str(m_dict['ws_units']) for m_dict in monthly),
-                "Gifting Units\t" + "\t".join(str(m_dict['gift_units']) for m_dict in monthly),
+                "2026 ACTUALS — ORDERS & UNITS (Shopify)",  # → R82
+                "Line Item\t" + "\t".join(m_dict['month_name'] for m_dict in monthly),  # → R83
+                "DTC Orders\t" + "\t".join(str(m_dict['dtc_orders']) for m_dict in monthly),  # → R84
+                "Wholesale Orders\t" + "\t".join(str(m_dict['ws_orders']) for m_dict in monthly),  # → R85
+                "Gifting Orders\t" + "\t".join(str(m_dict['gift_orders']) for m_dict in monthly),  # → R86
+                "Total Orders\t" + "\t".join(str(m_dict['orders']) for m_dict in monthly),  # → R87 (or use formula)
+                "",  # → R88 spacer
+                "UNITS",  # → R89
+                "DTC Units\t" + "\t".join(str(m_dict['dtc_units']) for m_dict in monthly),  # → R90
+                "Wholesale Units\t" + "\t".join(str(m_dict['ws_units']) for m_dict in monthly),  # → R91
+                "Gifting Units\t" + "\t".join(str(m_dict['gift_units']) for m_dict in monthly),  # → R92
+                "Total Units\t" + "\t".join(str(m_dict['units']) for m_dict in monthly),  # → R93
             ]
             paste_blob = "\n".join(paste_lines)
             st.download_button(
-                "📋 Download Excel-Paste TSV (QBO Actuals R83-R89)",
+                "📋 Download Excel-Paste TSV (QBO Actuals R82-R93)",
                 paste_blob,
                 "shopify_excel_paste.tsv",
                 "text/tab-separated-values",

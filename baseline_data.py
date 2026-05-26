@@ -753,34 +753,30 @@ def get_baseline_fundraising():
 # Matches Excel model Assumptions tab PO section
 # ============================================================
 BASELINE_PO_DATA = [
-    {"name": "Summer 2026 (Beta)", "product": "Beta", "pairs": 2000, "amount": 90000, "order_month": 2, "order_year": 2026},
-    {"name": "Summer 2026 (Alpha)", "product": "Alpha", "pairs": 1000, "amount": 55000, "order_month": 2, "order_year": 2026},
-    {"name": "Fall 2026 (Beta)", "product": "Beta", "pairs": 2000, "amount": 90000, "order_month": 4, "order_year": 2026},
-    {"name": "Fall 2026 (Alpha)", "product": "Alpha", "pairs": 1000, "amount": 55000, "order_month": 4, "order_year": 2026},
-    {"name": "Holiday 2026 (Beta)", "product": "Beta", "pairs": 1500, "amount": 67500, "order_month": 6, "order_year": 2026},
-    {"name": "Holiday 2026 (Alpha)", "product": "Alpha", "pairs": 500, "amount": 27500, "order_month": 6, "order_year": 2026},
-    {"name": "Spring 2027 (Beta)", "product": "Beta", "pairs": 3000, "amount": 135000, "order_month": 8, "order_year": 2026},
-    {"name": "Spring 2027 (Alpha)", "product": "Alpha", "pairs": 2000, "amount": 110000, "order_month": 8, "order_year": 2026},
-    {"name": "Summer 2027 (Beta)", "product": "Beta", "pairs": 4000, "amount": 180000, "order_month": 11, "order_year": 2026},
-    {"name": "Summer 2027 (Alpha)", "product": "Alpha", "pairs": 2000, "amount": 110000, "order_month": 11, "order_year": 2026},
-    {"name": "Fall 2027 (Beta)", "product": "Beta", "pairs": 4000, "amount": 180000, "order_month": 2, "order_year": 2027},
-    {"name": "Fall 2027 (Alpha)", "product": "Alpha", "pairs": 3000, "amount": 165000, "order_month": 2, "order_year": 2027},
+    # Synced with Excel Assumptions R207-R226 (May 26, 2026)
+    # User restructured POs to match actual inventory position:
+    #   - Removed all Alpha POs (model is all-Beta DTC)
+    #   - Removed Summer/Fall 2026 Beta POs (beg inv 4433 covers early year)
+    #   - Reduced 2027 Beta POs to match lower DTC volume
+    #   - Holiday 2026 timing: month 5 (was 6)
+    {"name": "Holiday 2026 (Beta)", "product": "Beta", "pairs": 1500, "amount": 67500, "order_month": 5, "order_year": 2026},
+    {"name": "Spring 2027 (Beta)",  "product": "Beta", "pairs": 2000, "amount": 90000, "order_month": 8, "order_year": 2026},
+    {"name": "Summer 2027 (Beta)",  "product": "Beta", "pairs": 3000, "amount": 135000, "order_month": 11, "order_year": 2026},
+    {"name": "Fall 2027 (Beta)",    "product": "Beta", "pairs": 3000, "amount": 135000, "order_month": 2, "order_year": 2027},
     {"name": "Holiday 2027 (Beta)", "product": "Beta", "pairs": 3000, "amount": 135000, "order_month": 5, "order_year": 2027},
-    {"name": "Holiday 2027 (Alpha)", "product": "Alpha", "pairs": 2000, "amount": 110000, "order_month": 5, "order_year": 2027},
-    # 2028 POs (placeholder — sized to cover doubled 2028 WS + DTC demand)
-    {"name": "Spring 2028 (Beta)",  "product": "Beta",  "pairs": 6000, "amount": 270000, "order_month": 11, "order_year": 2027},
-    {"name": "Summer 2028 (Beta)",  "product": "Beta",  "pairs": 5000, "amount": 225000, "order_month": 2,  "order_year": 2028},
-    {"name": "Fall 2028 (Beta)",    "product": "Beta",  "pairs": 8000, "amount": 360000, "order_month": 5,  "order_year": 2028},
-    {"name": "Spring 2028 (Alpha)", "product": "Alpha", "pairs": 1500, "amount": 82500,  "order_month": 11, "order_year": 2027},
-    {"name": "Summer 2028 (Alpha)", "product": "Alpha", "pairs": 2000, "amount": 110000, "order_month": 2,  "order_year": 2028},
-    {"name": "Fall 2028 (Alpha)",   "product": "Alpha", "pairs": 2500, "amount": 137500, "order_month": 5,  "order_year": 2028},
+    {"name": "Spring 2028 (Beta)",  "product": "Beta", "pairs": 5000, "amount": 225000, "order_month": 11, "order_year": 2027},
+    {"name": "Summer 2028 (Beta)",  "product": "Beta", "pairs": 5000, "amount": 225000, "order_month": 2, "order_year": 2028},
+    {"name": "Fall 2028 (Beta)",    "product": "Beta", "pairs": 5000, "amount": 225000, "order_month": 5, "order_year": 2028},
+    # Total: 8 Beta POs, 27,500 pairs, $1,237,500
 ]
 
 BASELINE_INVENTORY_CONFIG = {
     "lead_time_months": 4,
     "payment_terms_months": 5,
-    "beg_inv_beta": 2500,
-    "beg_inv_alpha": 500,
+    # Synced with Excel Inventory tab R7/R17 (actual Shopify Jan 2026 beginning balance)
+    # was 2500/500 (programmatic estimate); updated to 4433/132 (Shopify reality)
+    "beg_inv_beta": 4433,
+    "beg_inv_alpha": 132,
 }
 
 

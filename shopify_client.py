@@ -298,6 +298,212 @@ def analyze_orders(orders: List[dict]) -> dict:
     }
 
 
+def classify_product(p: dict) -> str:
+    """Classify a Shopify product as 'Beta', 'Alpha', or 'Other'.
+    Used for inventory aggregation aligned with the Excel model's
+    Beta/Alpha tracking."""
+    title = (p.get('title') or '').lower()
+    product_type = (p.get('product_type') or '').lower()
+    tags = (p.get('tags') or '').lower()
+    haystack = f'{title} {product_type} {tags}'
+
+    if 'beta' in haystack or 'v2' in haystack:
+        return 'Beta'
+    if 'alpha' in haystack:
+        return 'Alpha'
+    return 'Other'
+
+
+def fetch_inventory_snapshot() -> dict:
+    """Pull CURRENT inventory levels from Shopify, organized by product category.
+
+    Shopify's REST API only exposes point-in-time inventory; there is no
+    historical month-end balance endpoint. To capture monthly snapshots,
+    run this function on the 1st of each month (or end of month) and save
+    the result to a file.
+
+    Returns:
+        {
+            'as_of': ISO-8601 timestamp,
+            'by_category': {'Beta': int, 'Alpha': int, 'Other': int, 'TOTAL': int},
+            'by_product': [
+                {'title', 'category', 'sku_count', 'qty', 'product_type', 'status'},
+                ...
+            ],
+        }
+    """
+    from datetime import datetime
+    products = fetch_products()
+
+    by_category = {'Beta': 0, 'Alpha': 0, 'Other': 0}
+    by_product = []
+
+    for p in products:
+        category = classify_product(p)
+        variants = p.get('variants', [])
+        qty = sum((v.get('inventory_quantity') or 0) for v in variants)
+        by_category[category] += qty
+        by_product.append({
+            'title': p.get('title', 'Unknown'),
+            'category': category,
+            'sku_count': len(variants),
+            'qty': qty,
+            'product_type': p.get('product_type', ''),
+            'status': p.get('status', ''),
+        })
+
+    by_category['TOTAL'] = sum(by_category[c] for c in ('Beta', 'Alpha', 'Other'))
+    by_product.sort(key=lambda x: x['qty'], reverse=True)
+
+    return {
+        'as_of': datetime.now().isoformat(timespec='seconds'),
+        'by_category': by_category,
+        'by_product': by_product,
+    }
+
+
+def reconstruct_historical_inventory(
+    orders: List[dict],
+    products: List[dict],
+    current_snapshot: dict = None,
+    po_arrivals: dict = None,
+) -> dict:
+    """Reconstruct month-END inventory balances by walking BACKWARDS from
+    today's snapshot using order history + PO arrival data.
+
+    Math: Beg_Inv[month N] = End_Inv[today] + Sales[N+1..today] - POs[N+1..today]
+                           = End_Inv[N] - Sales[month N+1..today] + POs[N+1..today]
+
+    Conversely, Ending Inventory for month M:
+        End_Inv[M] = End_Inv[today] + Sales[M+1..today] - POs[M+1..today]
+
+    Args:
+        orders: list of orders fetched from Shopify (with line_items)
+        products: list of products fetched from Shopify (for SKU → Beta/Alpha map)
+        current_snapshot: result of fetch_inventory_snapshot() (or None to fetch fresh)
+        po_arrivals: optional dict {(year, month): {'Beta': int, 'Alpha': int}}
+                    of PO arrivals to subtract back. Without this, end-of-month
+                    figures will be UNDERSTATED (PO arrivals not reversed).
+
+    Returns:
+        {(year, month): {'Beta': int, 'Alpha': int, 'Other': int}, ...}
+        for every month present in the order data (running backwards from today).
+    """
+    from datetime import datetime
+    from collections import defaultdict
+
+    if current_snapshot is None:
+        current_snapshot = fetch_inventory_snapshot()
+
+    # SKU → product category map (built from product list)
+    sku_to_cat = {}
+    title_to_cat = {}
+    for p in products:
+        cat = classify_product(p)
+        title_to_cat[(p.get('title') or '').lower()] = cat
+        for v in p.get('variants', []):
+            sku = (v.get('sku') or '').lower()
+            if sku:
+                sku_to_cat[sku] = cat
+
+    def classify_line_item(li):
+        """Best-effort classification of a line item to Beta/Alpha/Other."""
+        sku = (li.get('sku') or '').lower()
+        if sku and sku in sku_to_cat:
+            return sku_to_cat[sku]
+        title = (li.get('title') or '').lower()
+        if 'beta' in title or 'v2' in title:
+            return 'Beta'
+        if 'alpha' in title:
+            return 'Alpha'
+        return 'Other'
+
+    # Aggregate units shipped (sales) per month per category
+    sales_by_month = defaultdict(lambda: {'Beta': 0, 'Alpha': 0, 'Other': 0})
+    for o in orders:
+        created = o.get('created_at', '')
+        if not created:
+            continue
+        year = int(created[:4])
+        month = int(created[5:7])
+        for li in o.get('line_items', []):
+            qty = li.get('quantity', 0) or 0
+            cat = classify_line_item(li)
+            sales_by_month[(year, month)][cat] += qty
+
+    # Sort months ascending so we can iterate
+    months = sorted(sales_by_month.keys())
+    if not months:
+        return {}
+
+    # Walk BACKWARDS: starting from current_snapshot, undo each month
+    # End_Inv[today's month] is approximately current_snapshot (assuming small intra-month variance)
+    # End_Inv[prev_month] = End_Inv[current] + Sales[current_month] - POs[current_month]
+    today = datetime.now()
+    current_y, current_m = today.year, today.month
+
+    # Initialize: end-of-CURRENT-month = current snapshot
+    result = {}
+    running = dict(current_snapshot['by_category'])
+    running.pop('TOTAL', None)
+
+    # End of current month is approximately what we have now
+    result[(current_y, current_m)] = dict(running)
+
+    # Walk back month-by-month
+    months_desc = sorted([m for m in months if m <= (current_y, current_m)], reverse=True)
+    for (y, m) in months_desc:
+        if (y, m) == (current_y, current_m):
+            continue  # already set
+        # Get the month AFTER (y, m) — that's what consumed inventory to land here
+        # Actually let's recompute: end_inv[y, m] = end_inv[y, m+1] + sales[y, m+1] - po_arrivals[y, m+1]
+        # We walk backwards: starting from current, undo each subsequent month
+        # i.e., for each month MORE RECENT than (y, m), add back sales and subtract POs
+        pass
+
+    # Simpler approach: build forward from earliest month using a known starting inventory
+    # But we don't have a known starting inventory either. Use snapshot at month-end of CURRENT
+    # and add sales (which left) and subtract POs (which arrived) to get prior month-ends.
+
+    # Restart: walk explicitly
+    # End_Inv[current_month] = current_snapshot
+    # End_Inv[current_month - 1] = End_Inv[current_month] + sales_during_current_month - POs_during_current_month
+    # Continue back...
+
+    result = {}
+    running = {c: current_snapshot['by_category'].get(c, 0) for c in ('Beta', 'Alpha', 'Other')}
+    result[(current_y, current_m)] = dict(running)  # snapshot of "today"
+
+    # Reverse-iterate from current month backward through every month with sales
+    months_to_walk = sorted(
+        [m for m in sales_by_month.keys() if m <= (current_y, current_m)],
+        reverse=True
+    )
+
+    for ym in months_to_walk:
+        y, m = ym
+        # "Undo" the sales and PO arrivals of THIS month to get the PRIOR month-end
+        sales_this_month = sales_by_month[ym]
+        pos_this_month = (po_arrivals or {}).get(ym, {'Beta': 0, 'Alpha': 0, 'Other': 0})
+
+        # Prior month-end = current running + sales_this_month - pos_this_month
+        prior_running = {
+            c: running[c] + sales_this_month.get(c, 0) - pos_this_month.get(c, 0)
+            for c in ('Beta', 'Alpha', 'Other')
+        }
+
+        # Compute prior year/month
+        if m == 1:
+            prior_y, prior_m = y - 1, 12
+        else:
+            prior_y, prior_m = y, m - 1
+
+        result[(prior_y, prior_m)] = dict(prior_running)
+        running = prior_running
+
+    return result
+
+
 def analyze_inventory(products: List[dict]) -> dict:
     """Analyze product inventory."""
     items = []

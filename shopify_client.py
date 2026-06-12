@@ -190,14 +190,15 @@ def analyze_orders(orders: List[dict]) -> dict:
 
     monthly = defaultdict(lambda: {
         'orders': 0, 'gross': 0, 'discounts': 0, 'net': 0, 'tax': 0,
-        'units': 0, 'dtc_orders': 0, 'dtc_net': 0, 'dtc_units': 0,
-        'ws_orders': 0, 'ws_net': 0, 'ws_units': 0,
-        'gift_orders': 0, 'gift_units': 0,
+        'units': 0,
+        'dtc_orders': 0, 'dtc_net': 0, 'dtc_gross': 0, 'dtc_units': 0,
+        'ws_orders': 0,  'ws_net': 0,  'ws_gross': 0,  'ws_units': 0,
+        'gift_orders': 0,'gift_net': 0,'gift_gross': 0,'gift_units': 0,
     })
     products = defaultdict(lambda: {'units': 0, 'gross_revenue': 0, 'net_revenue': 0})
     discount_codes = defaultdict(lambda: {'count': 0, 'total': 0})
-    daily = defaultdict(lambda: {'orders': 0, 'net': 0})
-    channel_type = defaultdict(lambda: {'orders': 0, 'net': 0, 'units': 0})
+    daily = defaultdict(lambda: {'orders': 0, 'net': 0, 'gross': 0})
+    channel_type = defaultdict(lambda: {'orders': 0, 'net': 0, 'gross': 0, 'units': 0})
 
     for o in orders:
         created = o.get('created_at', '')
@@ -224,21 +225,27 @@ def analyze_orders(orders: List[dict]) -> dict:
         if order_type == 'DTC':
             m['dtc_orders'] += 1
             m['dtc_net'] += subtotal
+            m['dtc_gross'] += gross
             m['dtc_units'] += total_units
         elif order_type == 'Wholesale':
             m['ws_orders'] += 1
             m['ws_net'] += subtotal
+            m['ws_gross'] += gross
             m['ws_units'] += total_units
         else:
             m['gift_orders'] += 1
+            m['gift_net'] += subtotal
+            m['gift_gross'] += gross
             m['gift_units'] += total_units
 
         channel_type[order_type]['orders'] += 1
         channel_type[order_type]['net'] += subtotal
+        channel_type[order_type]['gross'] += gross
         channel_type[order_type]['units'] += total_units
 
         daily[date_str]['orders'] += 1
         daily[date_str]['net'] += subtotal
+        daily[date_str]['gross'] += gross
 
         # Product breakdown
         for li in o.get('line_items', []):

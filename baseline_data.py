@@ -589,13 +589,14 @@ RIPPLING_BURDENS = {
 
 
 # BASELINE WHOLESALE DEALS (2026-2028)
-# Synced with Excel May 26, 2026 — Excel moved to all-Beta channel × month
-# with blended ASP that ramps as Alpha penetrates wholesale:
-#   2026: 5% Alpha mix → blended ASP $149 ($144 Beta + 5% × $100 Alpha premium)
-#   2027: 15% Alpha mix → blended ASP $159
-#   2028: 30% Alpha mix → blended ASP $174
+# 2026: synced with Excel May 26, 2026 — blended ASP $149 (5% Alpha mix)
+# 2027-2028: Nate WS forecast 6Jun26 (territory build with John Anderson).
+#   Email guidance: "everything is forecast off an average wholesale price of $144"
+#   → ASP forced to flat $144 for 2027/2028 (overrides Alpha-blend convention).
+#   Nate's adjustments vs John's raw forecast: 50% of '27, dropped "B" territories in '28,
+#   full forecast for '29.  Totals: $1,447,200 (2027) / $3,330,000 (2028).
+#   Spring/Fall split mirrors Excel GG monthly shape → 37.5% Spring / 62.5% Fall.
 # All entries are 'Beta' product_type (wholesale unit consumption pool).
-# Mix % is reflected in wholesale_price (revenue side only).
 BASELINE_WHOLESALE = [
     # ---- 2026 ----
     {
@@ -628,67 +629,68 @@ BASELINE_WHOLESALE = [
         'notes': 'Fall 2026 - 1,500 units @ 80 doors (blended ASP)',
         'created_at': '2026-01-01T00:00:00',
     },
-    # ---- 2027 (15% Alpha mix → $159 blended ASP) ----
+    # ---- 2027 — Nate's WS forecast (6Jun26): $1,447,200 @ flat $144 ASP = 10,050u ----
+    # Spring/Fall split = 37.5% / 62.5% (mirrors GG monthly shape in Excel: Feb 6.25 + Mar 25 + Apr 6.25 = 37.5; Jul 12.5 + Aug 37.5 + Sep 12.5 = 62.5)
     {
         'customer_name': 'Total WS Spring 27',
         'product_type': 'Beta',
         'order_type': 'In-Line',
-        'num_pairs': 2500,
-        'wholesale_price': 159.00,  # blended @ 15% Alpha mix
+        'num_pairs': 6533,
+        'wholesale_price': 144.00,  # Nate forecast: flat $144 ASP
         'close_date': '2027-03-01',
         'delivery_date': '2027-03-15',
-        'sales_commission': 0.00,
-        'total_cost': 166650.00,
+        'sales_commission': 112890.24,  # 12% × $940,752
+        'total_cost': 251242.00,  # 3,769u × $66.66/u (prior per-unit cost ratio preserved)
         'units_produced': 0,
-        'doors': 125,
-        'notes': 'Spring 2027 - 2,500 units @ 125 doors (blended ASP @ 15% Alpha)',
-        'created_at': '2026-05-21T00:00:00',
+        'doors': 326,
+        'notes': "Spring 2027 - 6,533 units. Nate WS forecast 8Jun26 (65/35 split) ($1,447,200/yr @ $144 ASP)",
+        'created_at': '2026-06-06T00:00:00',
     },
     {
         'customer_name': 'Total WS Fall 27',
         'product_type': 'Beta',
         'order_type': 'In-Line',
-        'num_pairs': 4000,
-        'wholesale_price': 159.00,
+        'num_pairs': 3517,
+        'wholesale_price': 144.00,
         'close_date': '2027-08-01',
         'delivery_date': '2027-08-15',
-        'sales_commission': 0.00,
-        'total_cost': 277750.00,
+        'sales_commission': 60773.76,  # 12% × $506,448
+        'total_cost': 436163.00,  # 6,281u × $69.4375/u (prior per-unit cost ratio preserved)
         'units_produced': 0,
-        'doors': 200,
-        'notes': 'Fall 2027 - 4,000 units @ 200 doors (blended ASP @ 15% Alpha)',
-        'created_at': '2026-05-21T00:00:00',
+        'doors': 176,
+        'notes': "Fall 2027 - 3,517 units. Nate WS forecast 8Jun26 (65/35 split) ($1,447,200/yr @ $144 ASP)",
+        'created_at': '2026-06-06T00:00:00',
     },
-    # ---- 2028 (30% Alpha mix → $174 blended ASP) ----
+    # ---- 2028 — Nate's WS forecast (6Jun26): $3,330,000 @ flat $144 ASP = 23,125u ----
     {
         'customer_name': 'Total WS Spring 28',
         'product_type': 'Beta',
         'order_type': 'In-Line',
-        'num_pairs': 5000,
-        'wholesale_price': 174.00,  # blended @ 30% Alpha mix
+        'num_pairs': 15031,
+        'wholesale_price': 144.00,  # Nate forecast: flat $144 ASP
         'close_date': '2028-03-01',
         'delivery_date': '2028-03-15',
-        'sales_commission': 0.00,
-        'total_cost': 333300.00,
+        'sales_commission': 259735.68,  # 12% × $2,164,464
+        'total_cost': 578075.00,  # 8,672u × $66.66/u
         'units_produced': 0,
-        'doors': 250,
-        'notes': 'Spring 2028 - 5,000 units @ 250 doors (blended ASP @ 30% Alpha)',
-        'created_at': '2026-05-21T00:00:00',
+        'doors': 752,
+        'notes': "Spring 2028 - 15,031 units. Nate WS forecast 8Jun26 (65/35 split) ($3,330,000/yr @ $144 ASP)",
+        'created_at': '2026-06-06T00:00:00',
     },
     {
         'customer_name': 'Total WS Fall 28',
         'product_type': 'Beta',
         'order_type': 'In-Line',
-        'num_pairs': 8000,
-        'wholesale_price': 174.00,
+        'num_pairs': 8094,
+        'wholesale_price': 144.00,
         'close_date': '2028-08-01',
         'delivery_date': '2028-08-15',
-        'sales_commission': 0.00,
-        'total_cost': 555500.00,
+        'sales_commission': 139864.32,  # 12% × $1,165,536
+        'total_cost': 1003705.00,  # 14,453u × $69.4375/u
         'units_produced': 0,
-        'doors': 400,
-        'notes': 'Fall 2028 - 8,000 units @ 400 doors (blended ASP @ 30% Alpha)',
-        'created_at': '2026-05-21T00:00:00',
+        'doors': 405,
+        'notes': "Fall 2028 - 8,094 units. Nate WS forecast 8Jun26 (65/35 split) ($3,330,000/yr @ $144 ASP)",
+        'created_at': '2026-06-06T00:00:00',
     },
 ]
 
@@ -727,21 +729,20 @@ def get_baseline_fundraising():
 # Matches Excel model Assumptions tab PO section
 # ============================================================
 BASELINE_PO_DATA = [
-    # Synced with Excel Assumptions R207-R226 (May 26, 2026)
-    # User restructured POs to match actual inventory position:
-    #   - Removed all Alpha POs (model is all-Beta DTC)
-    #   - Removed Summer/Fall 2026 Beta POs (beg inv 4433 covers early year)
-    #   - Reduced 2027 Beta POs to match lower DTC volume
-    #   - Holiday 2026 timing: month 5 (was 6)
-    {"name": "Holiday 2026 (Beta)", "product": "Beta", "pairs": 1500, "amount": 67500, "order_month": 5, "order_year": 2026},
-    {"name": "Spring 2027 (Beta)",  "product": "Beta", "pairs": 2000, "amount": 90000, "order_month": 8, "order_year": 2026},
-    {"name": "Summer 2027 (Beta)",  "product": "Beta", "pairs": 3000, "amount": 135000, "order_month": 11, "order_year": 2026},
-    {"name": "Fall 2027 (Beta)",    "product": "Beta", "pairs": 3000, "amount": 135000, "order_month": 2, "order_year": 2027},
-    {"name": "Holiday 2027 (Beta)", "product": "Beta", "pairs": 4000, "amount": 180000, "order_month": 5, "order_year": 2027},
-    {"name": "Spring 2028 (Beta)",  "product": "Beta", "pairs": 5000, "amount": 225000, "order_month": 11, "order_year": 2027},
-    {"name": "Summer 2028 (Beta)",  "product": "Beta", "pairs": 5000, "amount": 225000, "order_month": 2, "order_year": 2028},
-    {"name": "Fall 2028 (Beta)",    "product": "Beta", "pairs": 5000, "amount": 225000, "order_month": 5, "order_year": 2028},
-    # Total: 8 Beta POs, 27,500 pairs, $1,237,500
+    # Recalibrated 8Jun26 — Nathan note: 2028 POs were too aggressive (inventory ballooned).
+    # Slimmed to land end-2028 ~8K units. WS reshaped 65% Spring / 35% Fall.
+    # Lead time 4 months; arrival = order_month + 4.
+    {"name": "Holiday 2026 (Beta)",      "product": "Beta", "pairs": 1500,  "amount": 67500,  "order_month": 5,  "order_year": 2026},
+    {"name": "Spring 2027 (Beta)",       "product": "Beta", "pairs": 2000,  "amount": 90000,  "order_month": 8,  "order_year": 2026},
+    {"name": "Summer 2027 (Beta)",       "product": "Beta", "pairs": 7000,  "amount": 315000, "order_month": 11, "order_year": 2026},  # bigger to cover Mar'27 4.4K WS ship
+    {"name": "Fall 2027 (Beta)",         "product": "Beta", "pairs": 6000,  "amount": 270000, "order_month": 2,  "order_year": 2027},
+    {"name": "Holiday 2027 (Beta)",      "product": "Beta", "pairs": 5000,  "amount": 225000, "order_month": 5,  "order_year": 2027},  # reverted Sep arrival
+    {"name": "Q4 2027 Stocker (Beta)",   "product": "Beta", "pairs": 3000,  "amount": 135000, "order_month": 8,  "order_year": 2027},
+    {"name": "Spring 2028 (Beta)",       "product": "Beta", "pairs": 12000, "amount": 540000, "order_month": 11, "order_year": 2027},  # cover Mar'28 10K WS ship
+    {"name": "Summer 2028 (Beta)",       "product": "Beta", "pairs": 7000,  "amount": 315000, "order_month": 2,  "order_year": 2028},  # trimmed from 12K
+    {"name": "Fall 2028 (Beta)",         "product": "Beta", "pairs": 7000,  "amount": 315000, "order_month": 4,  "order_year": 2028},  # trimmed from 14K; Aug arrival
+    {"name": "Q4 2028 Stocker (Beta)",   "product": "Beta", "pairs": 4000,  "amount": 180000, "order_month": 8,  "order_year": 2028},
+    # Total: 10 Beta POs, 54,500 pairs, $2,452,500 (down from 66,500 pairs / $2,992,500)
 ]
 
 BASELINE_INVENTORY_CONFIG = {

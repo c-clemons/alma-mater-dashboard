@@ -241,56 +241,51 @@ def show():
         inv = shopify_data['inventory']
 
         c1, c2, c3, c4, c5, c6 = st.columns(6)
-        # DTC now includes Gifting (matches Matt's reporting convention)
+        # Net Revenue = subtotal_price (dollars paid for product, pre-tax, pre-shipping).
+        # Gifting orders have $0 net by definition (100% discount), so we include them in DTC
+        # for unit/order counts but they contribute $0 to DTC Net Revenue.
         dtc = so['channel'].get('DTC', {})
         gift = so['channel'].get('Gifting', {})
         ws = so['channel'].get('Wholesale', {})
         dtc_units_combined = dtc.get('units', 0) + gift.get('units', 0)
         dtc_orders_combined = dtc.get('orders', 0) + gift.get('orders', 0)
-        dtc_gross_combined = dtc.get('gross', 0) + gift.get('gross', 0)
+        dtc_net_combined = dtc.get('net', 0) + gift.get('net', 0)  # gift.net == 0
         with c1:
             st.metric("Units Sold (Total)", f"{so['total_units']:,}")
         with c2:
             st.metric("Units Sold (DTC)", f"{dtc_units_combined:,}",
-                      help="Includes Gifting orders")
+                      help="Includes Gifting (seeded $0-payment) orders")
             st.caption(f"{dtc_orders_combined} orders (incl. {gift.get('orders', 0)} gifting)")
         with c3:
             st.metric("Units Sold (Wholesale)", f"{ws.get('units', 0):,}")
             st.caption(f"{ws.get('orders', 0)} orders")
         with c4:
-            st.metric("DTC Gross Revenue", f"${dtc_gross_combined:,.0f}",
-                      help="DTC + Gifting, before discounts. Matches Matt's reporting platform.")
+            st.metric("DTC Net Revenue", f"${dtc_net_combined:,.0f}",
+                      help="Subtotal paid for product (after discounts, before tax & shipping). Gifting orders contribute $0.")
         with c5:
-            st.metric("Wholesale Gross Revenue", f"${ws.get('gross', 0):,.0f}")
+            st.metric("Wholesale Net Revenue", f"${ws.get('net', 0):,.0f}")
         with c6:
             st.metric("Inventory on Hand", f"{inv['total_units']:,}")
             st.caption(f"{inv['in_stock']} of {inv['total_products']} SKUs in stock")
 
-        # ---- Monthly Gross Revenue by Channel chart ----
-        # DTC stack = paying DTC + Gifting (matches Matt's reporting convention)
+        # ---- Monthly Net Revenue by Channel chart ----
+        # Net = subtotal_price (after discounts, before tax/shipping) — dollars paid for product.
+        # Gifting orders contribute $0 by definition (100% discount).
         months_with_data = [m for m in so['monthly'] if m['orders'] > 0]
         if months_with_data:
             m_df = pd.DataFrame(months_with_data)
-            # Back-compat: if cached data predates the gross-by-channel fields, fall back to net
-            if 'dtc_gross' not in m_df.columns:
-                m_df['dtc_gross'] = m_df['dtc_net']
-                m_df['ws_gross']  = m_df['ws_net']
-                m_df['gift_gross'] = 0
-            elif 'gift_gross' not in m_df.columns:
-                m_df['gift_gross'] = 0
-            m_df['dtc_gross_combined'] = m_df['dtc_gross'] + m_df['gift_gross']
-            totals = m_df['dtc_gross_combined'] + m_df['ws_gross']
+            totals = m_df['dtc_net'] + m_df['ws_net']
 
             fig_shop = go.Figure()
             fig_shop.add_trace(go.Bar(
-                name='DTC Gross (incl. Gifting)', x=m_df['month_name'], y=m_df['dtc_gross_combined'],
+                name='DTC Net', x=m_df['month_name'], y=m_df['dtc_net'],
                 marker_color=ACCENT_BLUE,
             ))
             fig_shop.add_trace(go.Bar(
-                name='Wholesale Gross', x=m_df['month_name'], y=m_df['ws_gross'],
+                name='Wholesale Net', x=m_df['month_name'], y=m_df['ws_net'],
                 marker_color=ACCENT_PURPLE,
             ))
-            # Column-top totals (DTC+Gifting + Wholesale)
+            # Column-top totals (DTC + Wholesale)
             fig_shop.add_trace(go.Scatter(
                 x=m_df['month_name'], y=totals,
                 mode='text',
@@ -301,7 +296,7 @@ def show():
                 hoverinfo='skip',
             ))
             fig_shop.update_layout(
-                title='Monthly Gross Revenue by Channel',
+                title='Monthly Net Revenue by Channel',
                 barmode='stack', height=320, showlegend=True,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 yaxis_tickformat='$,.0f', margin=dict(t=60, b=30),
@@ -342,10 +337,12 @@ def show():
 
             if all_orders:
                 def _period_stats(orders_list, start_dt, end_dt):
-                    # DTC bucket includes Gifting (matches Matt's reporting convention)
+                    # Net Revenue = subtotal_price (dollars paid for product, pre-tax/shipping).
+                    # Gifting orders have $0 net by definition; we still count their units in
+                    # DTC unit totals because they ARE units shipped, but they add $0 to revenue.
                     stats = {'dtc_units': 0, 'ws_units': 0,
-                             'dtc_gross': 0, 'ws_gross': 0,
-                             'gift_units': 0, 'gift_gross': 0, 'orders': 0}
+                             'dtc_net': 0, 'ws_net': 0,
+                             'gift_units': 0, 'orders': 0}
                     for o in orders_list:
                         created = o.get('created_at', '')[:10]
                         if not created:
@@ -359,20 +356,17 @@ def show():
                         stats['orders'] += 1
                         otype = sc.classify_order(o)
                         units = sum(li.get('quantity', 0) for li in o.get('line_items', []))
-                        # Gross = subtotal_price + total_discounts (price × qty, pre-discount)
-                        gross = float(o.get('subtotal_price', 0) or 0) + float(o.get('total_discounts', 0) or 0)
+                        net = float(o.get('subtotal_price', 0) or 0)
                         if otype == 'DTC':
                             stats['dtc_units'] += units
-                            stats['dtc_gross'] += gross
+                            stats['dtc_net'] += net
                         elif otype == 'Wholesale':
                             stats['ws_units'] += units
-                            stats['ws_gross'] += gross
+                            stats['ws_net'] += net
                         else:
+                            # Gifting: net is $0 by definition (100% discount). Roll units into DTC.
                             stats['gift_units'] += units
-                            stats['gift_gross'] += gross
-                            # Roll Gifting into DTC totals for display
                             stats['dtc_units'] += units
-                            stats['dtc_gross'] += gross
                     return stats
 
                 recent = _period_stats(all_orders, start_recent, end_recent)
@@ -399,8 +393,8 @@ def show():
                               delta=_delta_str_units(delta_u),
                               delta_color="normal")
                 with c2:
-                    delta_r = recent['dtc_gross'] - prior['dtc_gross']
-                    st.metric("DTC Gross Revenue", f"${recent['dtc_gross']:,.0f}",
+                    delta_r = recent['dtc_net'] - prior['dtc_net']
+                    st.metric("DTC Net Revenue", f"${recent['dtc_net']:,.0f}",
                               delta=_delta_str_rev(delta_r),
                               delta_color="normal")
                 with c3:
@@ -409,8 +403,8 @@ def show():
                               delta=_delta_str_units(delta_wu),
                               delta_color="normal")
                 with c4:
-                    delta_wr = recent['ws_gross'] - prior['ws_gross']
-                    st.metric("Wholesale Gross Revenue", f"${recent['ws_gross']:,.0f}",
+                    delta_wr = recent['ws_net'] - prior['ws_net']
+                    st.metric("Wholesale Net Revenue", f"${recent['ws_net']:,.0f}",
                               delta=_delta_str_rev(delta_wr),
                               delta_color="normal")
 

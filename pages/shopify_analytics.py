@@ -54,19 +54,18 @@ def show():
     # ================================================================
     st.markdown("## YTD Summary")
 
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         st.metric("Total Orders", f"{so['total_orders']:,}")
     with c2:
         st.metric("Units Sold", f"{so['total_units']:,}")
     with c3:
-        st.metric("Gross Revenue", f"${so['total_gross']:,.0f}")
+        st.metric("Net Revenue", f"${so['total_net']:,.0f}",
+                  help="Dollars paid for product after discounts, before tax & shipping. Matches Matt's reporting platform.")
     with c4:
         st.metric("Discounts", f"${so['total_discounts']:,.0f}",
                   delta=f"{so['discount_rate']:.0f}%", delta_color="inverse")
     with c5:
-        st.metric("Net Revenue", f"${so['total_net']:,.0f}")
-    with c6:
         st.metric("AOV", f"${so['aov']:,.2f}")
 
     st.divider()
@@ -123,7 +122,8 @@ def show():
     if months_with_data:
         m_df = pd.DataFrame(months_with_data)
 
-        # Revenue chart
+        # Revenue chart with column-top totals
+        totals = m_df['dtc_net'] + m_df['ws_net']
         fig_rev = go.Figure()
         fig_rev.add_trace(go.Bar(
             name='DTC Net', x=m_df['month_name'], y=m_df['dtc_net'],
@@ -133,9 +133,20 @@ def show():
             name='Wholesale Net', x=m_df['month_name'], y=m_df['ws_net'],
             marker_color='#A23B72'
         ))
+        # Column-top totals
+        fig_rev.add_trace(go.Scatter(
+            x=m_df['month_name'], y=totals,
+            mode='text',
+            text=[f"${v:,.0f}" for v in totals],
+            textposition='top center',
+            textfont=dict(size=12, color='#111'),
+            showlegend=False,
+            hoverinfo='skip',
+        ))
         fig_rev.update_layout(
             title='Monthly Net Revenue by Channel', barmode='stack',
-            height=350, yaxis_tickformat='$,.0f',
+            height=370, yaxis_tickformat='$,.0f',
+            yaxis=dict(range=[0, float(totals.max()) * 1.15]) if len(totals) else None,
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         )
         st.plotly_chart(fig_rev, use_container_width=True)

@@ -157,8 +157,18 @@ def fetch_products() -> List[dict]:
 
 
 def classify_order(order: dict) -> str:
-    """Classify an order as 'DTC', 'Wholesale', or 'Gifting'."""
+    """Classify an order as 'DTC', 'Wholesale', or 'Gifting'.
+
+    Wholesale classification checks BOTH the order's own tags AND the
+    customer's tags. This matches Matt's BI tool convention
+    (`customer_tags NOT CONTAINS 'Wholesale'`) — some wholesale customers
+    place orders that aren't tagged 'wholesale' on the order itself.
+    Switching to customer-tag-aware classification closed the
+    reconciliation gap from ~11% to ~3% (6 Jun 26 audit).
+    """
     tags = (order.get('tags') or '').lower()
+    customer = order.get('customer') or {}
+    cust_tags = (customer.get('tags') or '').lower()
     subtotal = float(order.get('subtotal_price', 0))
     discount = float(order.get('total_discounts', 0))
     codes = [c.get('code', '').lower() for c in (order.get('discount_codes') or [])]
@@ -171,8 +181,10 @@ def classify_order(order: dict) -> str:
     if any('gifting' in c for c in codes):
         return 'Gifting'
 
-    # Wholesale
+    # Wholesale — check order tags, customer tags, and discount codes
     if 'wholesale' in tags:
+        return 'Wholesale'
+    if 'wholesale' in cust_tags:
         return 'Wholesale'
     if any('wholesale' in c for c in codes):
         return 'Wholesale'

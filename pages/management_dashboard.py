@@ -241,15 +241,15 @@ def show():
         inv = shopify_data['inventory']
 
         c1, c2, c3, c4, c5, c6 = st.columns(6)
-        # Net Revenue = subtotal_price (dollars paid for product, pre-tax, pre-shipping).
-        # Gifting orders have $0 net by definition (100% discount), so we include them in DTC
-        # for unit/order counts but they contribute $0 to DTC Net Revenue.
+        # Adjusted Gross = Gross Sales − Discounts = subtotal_price (post-discount,
+        # pre-tax/shipping/returns). Matches Matt's BI tool "Adjusted Gross (calc'd)"
+        # hero column. Gifting orders have $0 Adjusted Gross by definition.
         dtc = so['channel'].get('DTC', {})
         gift = so['channel'].get('Gifting', {})
         ws = so['channel'].get('Wholesale', {})
         dtc_units_combined = dtc.get('units', 0) + gift.get('units', 0)
         dtc_orders_combined = dtc.get('orders', 0) + gift.get('orders', 0)
-        dtc_net_combined = dtc.get('net', 0) + gift.get('net', 0)  # gift.net == 0
+        dtc_adjg_combined = dtc.get('net', 0) + gift.get('net', 0)  # gift.net == 0
         with c1:
             st.metric("Units Sold (Total)", f"{so['total_units']:,}")
         with c2:
@@ -260,17 +260,17 @@ def show():
             st.metric("Units Sold (Wholesale)", f"{ws.get('units', 0):,}")
             st.caption(f"{ws.get('orders', 0)} orders")
         with c4:
-            st.metric("DTC Net Revenue", f"${dtc_net_combined:,.0f}",
-                      help="Subtotal paid for product (after discounts, before tax & shipping). Gifting orders contribute $0.")
+            st.metric("DTC Adjusted Gross", f"${dtc_adjg_combined:,.0f}",
+                      help="Gross Sales − Discounts (pre-tax, pre-shipping, pre-returns). Matches Matt's reporting hero metric.")
         with c5:
-            st.metric("Wholesale Net Revenue", f"${ws.get('net', 0):,.0f}")
+            st.metric("Wholesale Adjusted Gross", f"${ws.get('net', 0):,.0f}")
         with c6:
             st.metric("Inventory on Hand", f"{inv['total_units']:,}")
             st.caption(f"{inv['in_stock']} of {inv['total_products']} SKUs in stock")
 
-        # ---- Monthly Net Revenue by Channel chart ----
-        # Net = subtotal_price (after discounts, before tax/shipping) — dollars paid for product.
-        # Gifting orders contribute $0 by definition (100% discount).
+        # ---- Monthly Adjusted Gross by Channel chart ----
+        # Adjusted Gross = subtotal_price (Gross Sales - Discounts, pre-tax/shipping/returns).
+        # Matches Matt's BI tool hero metric.
         months_with_data = [m for m in so['monthly'] if m['orders'] > 0]
         if months_with_data:
             m_df = pd.DataFrame(months_with_data)
@@ -278,11 +278,11 @@ def show():
 
             fig_shop = go.Figure()
             fig_shop.add_trace(go.Bar(
-                name='DTC Net', x=m_df['month_name'], y=m_df['dtc_net'],
+                name='DTC Adj Gross', x=m_df['month_name'], y=m_df['dtc_net'],
                 marker_color=ACCENT_BLUE,
             ))
             fig_shop.add_trace(go.Bar(
-                name='Wholesale Net', x=m_df['month_name'], y=m_df['ws_net'],
+                name='Wholesale Adj Gross', x=m_df['month_name'], y=m_df['ws_net'],
                 marker_color=ACCENT_PURPLE,
             ))
             # Column-top totals (DTC + Wholesale)
@@ -296,7 +296,7 @@ def show():
                 hoverinfo='skip',
             ))
             fig_shop.update_layout(
-                title='Monthly Net Revenue by Channel',
+                title='Monthly Adjusted Gross by Channel',
                 barmode='stack', height=320, showlegend=True,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 yaxis_tickformat='$,.0f', margin=dict(t=60, b=30),
@@ -394,7 +394,7 @@ def show():
                               delta_color="normal")
                 with c2:
                     delta_r = recent['dtc_net'] - prior['dtc_net']
-                    st.metric("DTC Net Revenue", f"${recent['dtc_net']:,.0f}",
+                    st.metric("DTC Adjusted Gross", f"${recent['dtc_net']:,.0f}",
                               delta=_delta_str_rev(delta_r),
                               delta_color="normal")
                 with c3:
@@ -404,7 +404,7 @@ def show():
                               delta_color="normal")
                 with c4:
                     delta_wr = recent['ws_net'] - prior['ws_net']
-                    st.metric("Wholesale Net Revenue", f"${recent['ws_net']:,.0f}",
+                    st.metric("Wholesale Adjusted Gross", f"${recent['ws_net']:,.0f}",
                               delta=_delta_str_rev(delta_wr),
                               delta_color="normal")
 

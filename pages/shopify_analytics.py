@@ -60,8 +60,8 @@ def show():
     with c2:
         st.metric("Units Sold", f"{so['total_units']:,}")
     with c3:
-        st.metric("Net Revenue", f"${so['total_net']:,.0f}",
-                  help="Dollars paid for product after discounts, before tax & shipping. Matches Matt's reporting platform.")
+        st.metric("Adjusted Gross", f"${so['total_net']:,.0f}",
+                  help="Gross Sales − Discounts (pre-tax, pre-shipping, pre-returns). Matches Matt's BI tool hero metric \"Adjusted Gross (calc'd)\".")
     with c4:
         st.metric("Discounts", f"${so['total_discounts']:,.0f}",
                   delta=f"{so['discount_rate']:.0f}%", delta_color="inverse")
@@ -83,17 +83,17 @@ def show():
             'Channel': ch_name,
             'Orders': ch.get('orders', 0),
             'Units': ch.get('units', 0),
-            'Net Revenue': ch.get('net', 0),
+            'Adjusted Gross': ch.get('net', 0),
         })
     ch_df = pd.DataFrame(ch_data)
 
     c1, c2 = st.columns(2)
     with c1:
         fig = go.Figure(data=[go.Pie(
-            labels=ch_df['Channel'], values=ch_df['Net Revenue'],
+            labels=ch_df['Channel'], values=ch_df['Adjusted Gross'],
             hole=0.4, marker=dict(colors=['#2E86AB', '#A23B72', '#95D5B2'])
         )])
-        fig.update_layout(title='Net Revenue by Channel', height=300)
+        fig.update_layout(title='Adjusted Gross by Channel', height=300)
         st.plotly_chart(fig, use_container_width=True)
 
     with c2:
@@ -106,7 +106,7 @@ def show():
 
     # Channel table
     ch_display = ch_df.copy()
-    ch_display['Net Revenue'] = ch_display['Net Revenue'].apply(lambda x: f"${x:,.0f}")
+    ch_display['Adjusted Gross'] = ch_display['Adjusted Gross'].apply(lambda x: f"${x:,.0f}")
     st.dataframe(ch_display, use_container_width=True, hide_index=True)
 
     st.divider()
@@ -122,15 +122,15 @@ def show():
     if months_with_data:
         m_df = pd.DataFrame(months_with_data)
 
-        # Revenue chart with column-top totals
+        # Adjusted Gross chart with column-top totals
         totals = m_df['dtc_net'] + m_df['ws_net']
         fig_rev = go.Figure()
         fig_rev.add_trace(go.Bar(
-            name='DTC Net', x=m_df['month_name'], y=m_df['dtc_net'],
+            name='DTC Adj Gross', x=m_df['month_name'], y=m_df['dtc_net'],
             marker_color='#2E86AB'
         ))
         fig_rev.add_trace(go.Bar(
-            name='Wholesale Net', x=m_df['month_name'], y=m_df['ws_net'],
+            name='Wholesale Adj Gross', x=m_df['month_name'], y=m_df['ws_net'],
             marker_color='#A23B72'
         ))
         # Column-top totals
@@ -144,7 +144,7 @@ def show():
             hoverinfo='skip',
         ))
         fig_rev.update_layout(
-            title='Monthly Net Revenue by Channel', barmode='stack',
+            title='Monthly Adjusted Gross by Channel', barmode='stack',
             height=370, yaxis_tickformat='$,.0f',
             yaxis=dict(range=[0, float(totals.max()) * 1.15]) if len(totals) else None,
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
@@ -189,10 +189,10 @@ def show():
                           'discount_rate', 'net', 'aov', 'dtc_orders', 'ws_orders',
                           'gift_orders']].copy()
         orders_df.columns = ['Month', 'Orders', 'Units', 'Gross', 'Discounts',
-                             'Disc %', 'Net Revenue', 'AOV', 'DTC', 'Wholesale', 'Gifting']
+                             'Disc %', 'Adjusted Gross', 'AOV', 'DTC', 'Wholesale', 'Gifting']
         # Display copy with formatting
         display_df = orders_df.copy()
-        for col in ['Gross', 'Discounts', 'Net Revenue', 'AOV']:
+        for col in ['Gross', 'Discounts', 'Adjusted Gross', 'AOV']:
             display_df[col] = display_df[col].apply(lambda x: f"${x:,.0f}")
         display_df['Disc %'] = display_df['Disc %'].apply(lambda x: f"{x:.0f}%")
         st.dataframe(display_df, use_container_width=True, hide_index=True)

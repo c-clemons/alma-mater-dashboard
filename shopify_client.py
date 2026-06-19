@@ -75,7 +75,17 @@ def _api_get(endpoint: str, params: dict = None) -> dict:
 
 
 def _fetch_all_orders(min_date: str, max_date: str) -> List[dict]:
-    """Fetch all orders in a date range, handling pagination."""
+    """Fetch all orders in a date range, handling pagination.
+
+    Filter by `created_at` (when the customer placed the order). We
+    explicitly include `customer` and `fulfillments` in the fields list so
+    classify_order can read customer.tags. We tested switching to
+    `updated_at_min` + bucket-by-fulfillment-date to mirror Matt's BI tool,
+    but the result didn't match cleanly under any single-timestamp logic
+    (his platform appears to handle partial fulfillments per-line-item,
+    which can't be replicated without much heavier client-side logic). Best
+    daily match against Matt is created_at + customer-tag wholesale filter.
+    """
     all_orders = []
     page_info = None
     _load_env()
@@ -86,7 +96,8 @@ def _fetch_all_orders(min_date: str, max_date: str) -> List[dict]:
         else:
             url = (f"https://{_STORE}/admin/api/2024-01/orders.json?"
                    f"status=any&created_at_min={min_date}&created_at_max={max_date}"
-                   f"&limit=250&fields=id,name,created_at,financial_status,fulfillment_status,"
+                   f"&limit=250&fields=id,name,created_at,processed_at,"
+                   f"financial_status,fulfillment_status,fulfillments,customer,"
                    f"total_price,subtotal_price,total_tax,total_discounts,source_name,tags,"
                    f"discount_codes,line_items")
 
@@ -192,6 +203,21 @@ def classify_order(order: dict) -> str:
     return 'DTC'
 
 
+def get_fulfillment_date(order: dict) -> str:
+    """Return the order's fulfillment date as 'YYYY-MM-DD' or '' if unfulfilled.
+
+    Uses the FIRST fulfillment's created_at (i.e., when the first shipment went
+    out). Matches Matt's BI tool convention. Orders with no fulfillments are
+    unfulfilled — we exclude them from revenue attribution since they haven't
+    shipped yet (proper accrual treatment).
+    """
+    fulfillments = order.get('fulfillments') or []
+    if not fulfillments:
+        return ''
+    first = fulfillments[0] or {}
+    return (first.get('created_at') or '')[:10]
+
+
 def analyze_orders(orders: List[dict]) -> dict:
     """
     Comprehensive order analysis.
@@ -213,6 +239,8 @@ def analyze_orders(orders: List[dict]) -> dict:
     channel_type = defaultdict(lambda: {'orders': 0, 'net': 0, 'gross': 0, 'units': 0})
 
     for o in orders:
+        # Bucket by created_at (when customer placed the order).
+        # See _fetch_all_orders docstring for why we don't use fulfillment date.
         created = o.get('created_at', '')
         if not created:
             continue
@@ -437,7 +465,7 @@ def reconstruct_historical_inventory(
             return 'Alpha'
         return 'Other'
 
-    # Aggregate units shipped (sales) per month per category
+    # Aggregate units shipped (sales) per month per category, by created_at.
     sales_by_month = defaultdict(lambda: {'Beta': 0, 'Alpha': 0, 'Other': 0})
     for o in orders:
         created = o.get('created_at', '')

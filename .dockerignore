@@ -1,0 +1,14 @@
+.git
+.gitignore
+__pycache__/
+*.pyc
+.DS_Store
+
+# Secrets never go in the image
+.streamlit/secrets.toml
+
+# Docs / build files not needed at runtime
+*.md
+Dockerfile
+.dockerignore
+.devcontainer/

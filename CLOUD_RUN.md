@@ -3,9 +3,10 @@
 Target: a **private** Cloud Run service, SSO via **Cloudflare Access**, at
 `https://almamater.empirica-analytics.com`.
 
-> Alma runs the **live** app as-is (entry `app_client.py`) with its own password
-> gate (`st.secrets["dashboard_password"]`) and Shopify/QBO integrations. The
-> shared kit is **not** vendored here yet — see "Single sign-on" below.
+> Alma runs the **live** app (entry `app_client.py`) with its Shopify/QBO
+> integrations. The kit is now vendored and `check_password()` trusts an identity
+> proxy first (single email login via Cloudflare Access / IAP), falling back to
+> the `dashboard_password` gate when there's no proxy (local dev).
 
 ## Prerequisites (one-time per GCP project)
 
@@ -59,13 +60,13 @@ Cloudflare Tunnel to the private service, then a Zero Trust → Access app on
 `almamater.empirica-analytics.com` allowing the client's email(s). Cloudflare
 handles the email login.
 
-### Single sign-on note
-Because the kit isn't vendored here, Alma still shows its **own** password after
-Cloudflare's email login (two prompts). To collapse it to a single email login,
-do the small follow-up: vendor the kit (`~/empirica-core/scripts/vendor_into.sh
-~/alma-mater-dashboard`), bump `streamlit>=1.37`, and replace `check_password()`
-with `empirica_core.portal.auth.require_access(...)`. Until then, put
-`dashboard_password` in `alma-secrets` so the second prompt still works.
+### Single sign-on
+Single email login is wired: `check_password()` returns immediately when the
+identity proxy sets `Cf-Access-Authenticated-User-Email` (or IAP's
+`X-Goog-Authenticated-User-Email`), so clients see **only** Cloudflare's email
+login — no second prompt. Keep `dashboard_password` in `alma-secrets` as the
+fallback for local/no-proxy access. Refresh the vendored kit after any kit change
+with `~/empirica-core/scripts/vendor_into.sh ~/alma-mater-dashboard`.
 
 ## 5. Custom domain
 

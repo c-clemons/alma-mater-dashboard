@@ -129,7 +129,18 @@ def auto_save_data():
             store.save_po_data(st.session_state.po_data)
 
 def check_password() -> bool:
-    """Gate the app behind a single shared password from st.secrets."""
+    """Gate the app: single sign-on via an identity proxy when present, else the
+    shared password from st.secrets.
+
+    Behind Cloudflare Access / Google IAP the proxy has already authenticated the
+    user and forwards their verified email, so we trust it and skip the password
+    prompt (single email login). With no proxy (local dev / direct access) the
+    existing shared-password gate applies.
+    """
+    from empirica_core.portal.auth import proxy_identity
+    if proxy_identity():
+        return True
+
     if st.session_state.get('authenticated'):
         return True
 

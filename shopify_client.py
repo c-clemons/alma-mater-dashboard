@@ -49,6 +49,16 @@ def _load_env():
         _STORE = os.environ.get('SHOPIFY_STORE')
     if not _TOKEN:
         _TOKEN = os.environ.get('SHOPIFY_ACCESS_TOKEN')
+    # Fallback to Streamlit secrets (Cloud Run mounts secrets.toml, which
+    # populates st.secrets but not os.environ). Lets one secret file cover both
+    # dashboard_password and the Shopify creds.
+    if not _STORE or not _TOKEN:
+        try:
+            import streamlit as st
+            _STORE = _STORE or st.secrets.get('SHOPIFY_STORE')
+            _TOKEN = _TOKEN or st.secrets.get('SHOPIFY_ACCESS_TOKEN')
+        except Exception:
+            pass
 
 
 def _api_get(endpoint: str, params: dict = None) -> dict:

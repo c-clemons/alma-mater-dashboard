@@ -159,43 +159,80 @@ def check_password() -> bool:
     return False
 
 
+# --- Access control (roles) -------------------------------------------------
+import os  # noqa: E402
+from empirica_core.portal import roles as _roles  # noqa: E402
+from empirica_core.portal.admin import render_user_admin  # noqa: E402
+
+# Seeded admin(s) — always admin regardless of the stored file, so someone can
+# reach User Management to grant everyone else. Add Nathan via the Admin page.
+BOOTSTRAP_ADMINS = ["chandler@empirica-analytics.com"]
+
+# Minimum role required to SEE each page (order = nav order).
+# admin > management > employee > investor.  Team Tracker = payroll → management+.
+PAGE_MIN = {
+    "Management Dashboard": "investor",
+    "Shopify Analytics":    "employee",
+    "Cash Flow & Runway":   "investor",
+    "Monthly P&L Detail":   "management",
+    "Fundraising":          "management",
+    "QBO Import":           "management",
+    "Assumptions":          "management",
+    "Team Tracker":         "management",
+    "OpEx Tracker":         "employee",
+    "Wholesale Tracker":    "employee",
+    "Inventory Tracker":    "employee",
+    "Export to PDF":        "management",
+}
+ALL_PAGES = list(PAGE_MIN.keys())
+ADMIN_PAGE = "⚙ User Management"
+
+_ROLE_STORE = _roles.RoleStore(
+    "alma",
+    bucket="empirica-portals-state" if os.environ.get("K_SERVICE") else None,
+    bootstrap_admins=BOOTSTRAP_ADMINS,
+    local_path=Path(__file__).parent / "data" / "roles_local.json",
+)
+
+
 def main():
     """Main app"""
 
-    # Auth gate
+    # Auth gate (Cloudflare Access / password)
     if not check_password():
+        return
+
+    # Role gate: Access admits anyone with a verified email; roles decide what
+    # they can see. No role yet → landing page (fail-closed).
+    email = _roles.resolve_identity()
+    role = _ROLE_STORE.role_for(email)
+    if role is None:
+        _roles.render_landing(email, "Alma Mater Financial Dashboard", _ROLE_STORE)
         return
 
     # Initialize
     init_session_state()
-    
+
+    # Pages this role may see (+ Admin page for admins).
+    allowed = [p for p in ALL_PAGES if _roles.can_view(role, PAGE_MIN[p])]
+    if role == "admin":
+        allowed = allowed + [ADMIN_PAGE]
+
     # Sidebar
     with st.sidebar:
         st.markdown("### Alma Mater Inc.")
         st.markdown("Financial Dashboard")
+        st.caption(f"{email} · **{role}**")
         st.divider()
-        
+
         # Navigation
         st.markdown("### Navigation")
         page = st.radio(
             "Select Page:",
-            [
-                "Management Dashboard",
-                "Shopify Analytics",
-                "Cash Flow & Runway",
-                "Monthly P&L Detail",
-                "Fundraising",
-                "QBO Import",
-                "Assumptions",
-                "Team Tracker",
-                "OpEx Tracker",
-                "Wholesale Tracker",
-                "Inventory Tracker",
-                "Export to PDF"
-            ],
+            allowed,
             label_visibility="collapsed"
         )
-        
+
         st.divider()
         
         # Info
@@ -225,6 +262,11 @@ def main():
             st.metric("Current Cash", "$41K")
         st.metric("Cash Runway", "~2-3 months")
     
+    # Admin page (admins only — it's only in `allowed` for them)
+    if page == ADMIN_PAGE:
+        render_user_admin(_ROLE_STORE, current_admin_email=email)
+        return
+
     # Main content - route to appropriate page
     if page == "Management Dashboard":
         from pages import management_dashboard

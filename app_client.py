@@ -210,6 +210,10 @@ def main():
         _roles.render_landing(email, "Alma Mater Financial Dashboard", _ROLE_STORE)
         return
 
+    # Write gate: only admin/management persist changes (shared, durable state).
+    can_write = role in ("admin", "management")
+    st.session_state["_empirica_can_write"] = can_write
+
     # Initialize
     init_session_state()
 

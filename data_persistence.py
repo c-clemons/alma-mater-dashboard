@@ -1,252 +1,149 @@
 """
 Data Persistence Module
-Handles saving and loading of dashboard data with baseline data support
+
+Baseline (in code) + custom additions, stored durably in the shared GCS state
+bucket on Cloud Run (local files in dev), via empirica_core.storage.JsonStore.
+Writes are gated: only admin/management sessions persist changes — everyone else
+is read-only (avoids concurrent-edit conflicts). Same public API as before, so
+pages don't change.
 """
 
-import json
 import os
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Any
+
 from baseline_data import (
-    get_baseline_team, 
-    get_baseline_opex, 
-    get_baseline_wholesale
+    get_baseline_team,
+    get_baseline_opex,
+    get_baseline_wholesale,
 )
+from empirica_core.storage import JsonStore, session_can_write
+
+# Keys (object names) in the durable store.
+TEAM = "custom_team_members.json"
+OPEX = "custom_opex_expenses.json"
+WHOLESALE = "custom_wholesale_deals.json"
+ASSUMPTIONS = "model_assumptions.json"
+QBO = "qbo_actuals.json"
+FUNDRAISING = "fundraising_rounds.json"
+PO = "po_data.json"
 
 
 class DataStore:
-    """Manages persistent storage for dashboard data"""
-    
+    """Persistent storage for Alma dashboard data (durable + write-gated)."""
+
     def __init__(self, data_dir: str = "data"):
-        """Initialize data store with directory path"""
-        self.data_dir = data_dir
-        self.ensure_data_dir()
-        
-        # File paths (only for CUSTOM data, not baseline)
-        self.team_file = os.path.join(data_dir, "custom_team_members.json")
-        self.opex_file = os.path.join(data_dir, "custom_opex_expenses.json")
-        self.wholesale_file = os.path.join(data_dir, "custom_wholesale_deals.json")
-        self.assumptions_file = os.path.join(data_dir, "model_assumptions.json")
-        self.qbo_file = os.path.join(data_dir, "qbo_actuals.json")
-        self.fundraising_file = os.path.join(data_dir, "fundraising_rounds.json")
-        self.po_file = os.path.join(data_dir, "po_data.json")
-    
-    def ensure_data_dir(self):
-        """Create data directory if it doesn't exist"""
-        if not os.path.exists(self.data_dir):
-            os.makedirs(self.data_dir)
-    
-    # Team Members (Baseline + Custom)
+        local = Path(__file__).parent / data_dir
+        self._store = JsonStore(
+            app_key="alma",
+            bucket="empirica-portals-state" if os.environ.get("K_SERVICE") else None,
+            local_dir=local,
+        )
+
+    # --- internals ---------------------------------------------------------
+    def _save(self, key: str, payload_field: str, value) -> None:
+        """Persist ``{payload_field: value, last_updated}`` — writers only."""
+        if not session_can_write():
+            return
+        self._store.write(key, {payload_field: value,
+                                "last_updated": datetime.now().isoformat()})
+
+    def _load(self, key: str, payload_field: str, default):
+        data = self._store.read(key)
+        return data.get(payload_field, default) if data else default
+
+    @staticmethod
+    def _dedupe(items, key_fn, baseline):
+        """Return only ``items`` whose key isn't already in ``baseline``."""
+        baseline_ids = {key_fn(b) for b in baseline}
+        return [it for it in items if key_fn(it) not in baseline_ids]
+
+    # --- Team --------------------------------------------------------------
     def save_team_members(self, all_team_members: List[Dict[str, Any]]):
-        """Save ONLY custom team members (not baseline)"""
-        baseline = get_baseline_team()
-        baseline_ids = set()
-        
-        # Create IDs for baseline members
-        for member in baseline:
-            baseline_id = f"{member['first_name']}_{member['last_name']}_{member.get('start_date', '')}"
-            baseline_ids.add(baseline_id)
-        
-        # Filter out baseline members - only save custom additions
-        custom_members = []
-        for member in all_team_members:
-            member_id = f"{member['first_name']}_{member['last_name']}_{member.get('start_date', '')}"
-            if member_id not in baseline_ids:
-                custom_members.append(member)
-        
-        with open(self.team_file, 'w') as f:
-            json.dump({
-                'custom_team_members': custom_members,
-                'last_updated': datetime.now().isoformat()
-            }, f, indent=2)
-    
+        custom = self._dedupe(
+            all_team_members,
+            lambda m: f"{m['first_name']}_{m['last_name']}_{m.get('start_date', '')}",
+            get_baseline_team(),
+        )
+        self._save(TEAM, "custom_team_members", custom)
+
     def load_team_members(self) -> List[Dict[str, Any]]:
-        """Load baseline + custom team members"""
-        # Start with baseline
-        all_members = get_baseline_team()
-        
-        # Add custom members
-        if os.path.exists(self.team_file):
-            with open(self.team_file, 'r') as f:
-                data = json.load(f)
-                custom_members = data.get('custom_team_members', [])
-                all_members.extend(custom_members)
-        
-        return all_members
-    
-    # OpEx Expenses (Baseline + Custom)
+        return get_baseline_team() + self._load(TEAM, "custom_team_members", [])
+
+    # --- OpEx --------------------------------------------------------------
     def save_opex_expenses(self, all_expenses: List[Dict[str, Any]]):
-        """Save ONLY custom expenses (not baseline)"""
-        baseline = get_baseline_opex()
-        baseline_ids = set()
-        
-        # Create IDs for baseline expenses
-        for expense in baseline:
-            baseline_id = f"{expense['expense_name']}_{expense.get('start_date', '')}"
-            baseline_ids.add(baseline_id)
-        
-        # Filter out baseline expenses - only save custom additions
-        custom_expenses = []
-        for expense in all_expenses:
-            expense_id = f"{expense['expense_name']}_{expense.get('start_date', '')}"
-            if expense_id not in baseline_ids:
-                custom_expenses.append(expense)
-        
-        with open(self.opex_file, 'w') as f:
-            json.dump({
-                'custom_expenses': custom_expenses,
-                'last_updated': datetime.now().isoformat()
-            }, f, indent=2)
-    
+        custom = self._dedupe(
+            all_expenses,
+            lambda e: f"{e['expense_name']}_{e.get('start_date', '')}",
+            get_baseline_opex(),
+        )
+        self._save(OPEX, "custom_expenses", custom)
+
     def load_opex_expenses(self) -> List[Dict[str, Any]]:
-        """Load baseline + custom OpEx expenses"""
-        # Start with baseline
-        all_expenses = get_baseline_opex()
-        
-        # Add custom expenses
-        if os.path.exists(self.opex_file):
-            with open(self.opex_file, 'r') as f:
-                data = json.load(f)
-                custom_expenses = data.get('custom_expenses', [])
-                all_expenses.extend(custom_expenses)
-        
-        return all_expenses
-    
-    # Wholesale Deals (Baseline + Custom)
+        return get_baseline_opex() + self._load(OPEX, "custom_expenses", [])
+
+    # --- Wholesale ---------------------------------------------------------
     def save_wholesale_deals(self, all_deals: List[Dict[str, Any]]):
-        """Save ONLY custom deals (not baseline)"""
-        baseline = get_baseline_wholesale()
-        baseline_ids = set()
-        
-        # Create IDs for baseline deals
-        for deal in baseline:
-            baseline_id = f"{deal['customer_name']}_{deal.get('close_date', '')}"
-            baseline_ids.add(baseline_id)
-        
-        # Filter out baseline deals - only save custom additions
-        custom_deals = []
-        for deal in all_deals:
-            deal_id = f"{deal['customer_name']}_{deal.get('close_date', '')}"
-            if deal_id not in baseline_ids:
-                custom_deals.append(deal)
-        
-        with open(self.wholesale_file, 'w') as f:
-            json.dump({
-                'custom_deals': custom_deals,
-                'last_updated': datetime.now().isoformat()
-            }, f, indent=2)
-    
+        custom = self._dedupe(
+            all_deals,
+            lambda d: f"{d['customer_name']}_{d.get('close_date', '')}",
+            get_baseline_wholesale(),
+        )
+        self._save(WHOLESALE, "custom_deals", custom)
+
     def load_wholesale_deals(self) -> List[Dict[str, Any]]:
-        """Load baseline + custom wholesale deals"""
-        # Start with baseline
-        all_deals = get_baseline_wholesale()
-        
-        # Add custom deals
-        if os.path.exists(self.wholesale_file):
-            with open(self.wholesale_file, 'r') as f:
-                data = json.load(f)
-                custom_deals = data.get('custom_deals', [])
-                all_deals.extend(custom_deals)
-        
-        return all_deals
-    
-    # Assumptions
+        return get_baseline_wholesale() + self._load(WHOLESALE, "custom_deals", [])
+
+    # --- Assumptions -------------------------------------------------------
     def save_assumptions(self, assumptions: Dict[str, Any]):
-        """Save model assumptions to file"""
-        with open(self.assumptions_file, 'w') as f:
-            json.dump({
-                'assumptions': assumptions,
-                'last_updated': datetime.now().isoformat()
-            }, f, indent=2)
-    
+        self._save(ASSUMPTIONS, "assumptions", assumptions)
+
     def load_assumptions(self) -> Dict[str, Any]:
-        """Load model assumptions from file"""
-        if os.path.exists(self.assumptions_file):
-            with open(self.assumptions_file, 'r') as f:
-                data = json.load(f)
-                return data.get('assumptions', {})
-        return {}
-    
-    # QBO Actuals
+        return self._load(ASSUMPTIONS, "assumptions", {})
+
+    # --- QBO actuals -------------------------------------------------------
     def save_qbo_actuals(self, qbo_data: Dict[str, Any]):
-        """Save QBO actuals data to file"""
-        with open(self.qbo_file, 'w') as f:
-            json.dump({
-                'qbo_actuals': qbo_data,
-                'last_updated': datetime.now().isoformat()
-            }, f, indent=2)
+        self._save(QBO, "qbo_actuals", qbo_data)
 
     def load_qbo_actuals(self) -> Dict[str, Any]:
-        """Load QBO actuals data from file"""
-        if os.path.exists(self.qbo_file):
-            with open(self.qbo_file, 'r') as f:
-                data = json.load(f)
-                return data.get('qbo_actuals', {})
-        return {}
+        return self._load(QBO, "qbo_actuals", {})
 
-    # Fundraising
+    # --- Fundraising -------------------------------------------------------
     def save_fundraising(self, rounds: List[Dict[str, Any]]):
-        """Save fundraising rounds to file"""
-        with open(self.fundraising_file, 'w') as f:
-            json.dump({
-                'fundraising_rounds': rounds,
-                'last_updated': datetime.now().isoformat()
-            }, f, indent=2)
+        self._save(FUNDRAISING, "fundraising_rounds", rounds)
 
     def load_fundraising(self) -> List[Dict[str, Any]]:
-        """Load fundraising rounds from file"""
-        if os.path.exists(self.fundraising_file):
-            with open(self.fundraising_file, 'r') as f:
-                data = json.load(f)
-                return data.get('fundraising_rounds', [])
-        return []
+        return self._load(FUNDRAISING, "fundraising_rounds", [])
 
-    # Purchase Orders
+    # --- Purchase orders ---------------------------------------------------
     def save_po_data(self, po_list: List[Dict[str, Any]]):
-        """Save purchase order data to file"""
-        with open(self.po_file, 'w') as f:
-            json.dump({
-                'po_data': po_list,
-                'last_updated': datetime.now().isoformat()
-            }, f, indent=2)
+        self._save(PO, "po_data", po_list)
 
     def load_po_data(self) -> List[Dict[str, Any]]:
-        """Load purchase order data from file"""
-        if os.path.exists(self.po_file):
-            with open(self.po_file, 'r') as f:
-                data = json.load(f)
-                return data.get('po_data', [])
-        return []
+        return self._load(PO, "po_data", [])
 
-    # Utility
+    # --- Utility -----------------------------------------------------------
     def clear_all_data(self):
-        """Clear all stored data (use with caution!)"""
-        for file_path in [self.team_file, self.opex_file, self.wholesale_file, self.assumptions_file, self.qbo_file, self.fundraising_file, self.po_file]:
-            if os.path.exists(file_path):
-                os.remove(file_path)
-    
+        if not session_can_write():
+            return
+        for key in (TEAM, OPEX, WHOLESALE, ASSUMPTIONS, QBO, FUNDRAISING, PO):
+            self._store.delete(key)
+
     def get_last_updated(self, data_type: str) -> str:
-        """Get last updated timestamp for a data type"""
-        file_map = {
-            'team': self.team_file,
-            'opex': self.opex_file,
-            'wholesale': self.wholesale_file,
-            'assumptions': self.assumptions_file
-        }
-        
-        file_path = file_map.get(data_type)
-        if file_path and os.path.exists(file_path):
-            with open(file_path, 'r') as f:
-                data = json.load(f)
-                return data.get('last_updated', 'Unknown')
-        return 'Never'
+        key = {"team": TEAM, "opex": OPEX, "wholesale": WHOLESALE,
+               "assumptions": ASSUMPTIONS}.get(data_type)
+        if not key:
+            return "Never"
+        data = self._store.read(key)
+        return data.get("last_updated", "Unknown") if data else "Never"
 
 
 # Global instance
 _store = None
 
+
 def get_data_store() -> DataStore:
-    """Get or create global data store instance"""
     global _store
     if _store is None:
         _store = DataStore()

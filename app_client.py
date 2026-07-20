@@ -21,28 +21,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
-st.markdown("""
-<style>
-    .main-header {
-        font-size: 2.5rem;
-        font-weight: bold;
-        color: #1f77b4;
-        margin-bottom: 0.5rem;
-    }
-    .sub-header {
-        font-size: 1.2rem;
-        color: #666;
-        margin-bottom: 2rem;
-    }
-    .metric-card {
-        background-color: #f0f2f6;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        border-left: 4px solid #1f77b4;
-    }
-</style>
-""", unsafe_allow_html=True)
+# Empirica brand system + Alma customization
+from empirica_core.portal import chrome  # noqa: E402
+
+ALMA_LOGO = Path(__file__).parent / "assets" / "logo.svg"
+ALMA_ACCENT = "#b08d57"   # Alma's warm gold
+chrome.inject_brand_css(ALMA_ACCENT)
 
 # Initialize session state
 def init_session_state():
@@ -224,9 +208,12 @@ def main():
 
     # Sidebar
     with st.sidebar:
-        st.markdown("### Alma Mater Inc.")
-        st.markdown("Financial Dashboard")
+        chrome.render_brand(st.sidebar, client_logo=ALMA_LOGO,
+                            client_name="Alma Mater", accent_color=ALMA_ACCENT)
+        st.caption("Financial Dashboard")
         st.caption(f"{email} · **{role}**")
+        if not can_write:
+            st.caption("👁 Read-only — ask an admin to make changes")
         st.divider()
 
         # Navigation
@@ -265,7 +252,10 @@ def main():
         else:
             st.metric("Current Cash", "$41K")
         st.metric("Cash Runway", "~2-3 months")
-    
+
+        st.divider()
+        chrome.render_footer(st.sidebar)
+
     # Admin page (admins only — it's only in `allowed` for them)
     if page == ADMIN_PAGE:
         render_user_admin(_ROLE_STORE, current_admin_email=email)

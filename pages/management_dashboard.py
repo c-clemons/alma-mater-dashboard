@@ -136,7 +136,7 @@ def show():
 
     # ---------- Empirica hero + KPI strip ----------
     from empirica_core.portal import chrome
-    ACCENT = "#b08d57"
+    ACCENT = "#b5623f"  # Empirica clay
     rev_series = list(df_blended['Total Revenue'])
     gp_series = list(df_blended['Gross Profit'])
     ebitda_series = list(df_blended['EBITDA'])
@@ -144,7 +144,7 @@ def show():
     hero_fig = go.Figure(go.Scatter(
         x=list(df_blended['Month']), y=rev_series, mode="lines",
         line=dict(color=ACCENT, width=2.5),
-        fill="tozeroy", fillcolor="rgba(176,141,87,0.12)",
+        fill="tozeroy", fillcolor="rgba(181,98,63,0.12)",
     ))
     hero_fig.update_yaxes(tickformat="$,.2s")
     chrome.render_hero(

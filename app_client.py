@@ -26,7 +26,7 @@ st.set_page_config(
 from empirica_core.portal import chrome  # noqa: E402
 
 ALMA_LOGO = Path(__file__).parent / "assets" / "logo.svg"  # black wordmark for the white sidebar
-ALMA_ACCENT = "#b08d57"   # Alma's warm gold
+ALMA_ACCENT = "#b5623f"   # Empirica clay (shared across all portals)
 chrome.inject_brand_css(ALMA_ACCENT)
 
 # Initialize session state

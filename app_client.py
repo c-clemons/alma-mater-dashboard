@@ -275,6 +275,7 @@ def main():
             pass
 
         st.divider()
+        chrome.render_logout(st.sidebar)
         chrome.render_footer(st.sidebar)
 
     # Top bar in the main content: product context left, user chip right.

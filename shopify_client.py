@@ -602,6 +602,22 @@ def analyze_inventory(products: List[dict]) -> dict:
     }
 
 
+def _fetch_raw_uncached(year: int):
+    """Page the Shopify API for the year's orders + products (the expensive part)."""
+    return fetch_orders_ytd(year), fetch_products()
+
+
+# Server-side cache (shared across ALL sessions on a warm instance, 15-min TTL).
+# Unlike st.session_state this survives new browser connections, so a fresh visit
+# on a warm Cloud Run instance reuses the fetch instead of re-paging the whole API.
+try:  # only when running inside Streamlit
+    import streamlit as _st
+    _fetch_raw = _st.cache_data(ttl=900, show_spinner="Loading Shopify data…")(
+        _fetch_raw_uncached)
+except Exception:  # plain script / import
+    _fetch_raw = _fetch_raw_uncached
+
+
 def get_shopify_data(year: int = 2026, use_cache: bool = True) -> Optional[dict]:
     """
     Fetch and analyze all Shopify data for the year.
@@ -626,9 +642,9 @@ def get_shopify_data(year: int = 2026, use_cache: bool = True) -> Optional[dict]
     except ImportError:
         pass
 
-    # Fetch fresh data
-    orders = fetch_orders_ytd(year)
-    products = fetch_products()
+    # Fetch fresh data — server-side cached (see _fetch_raw) so a new session on a
+    # warm instance reuses it instead of re-paging the whole Shopify API.
+    orders, products = _fetch_raw(year)
 
     order_analysis = analyze_orders(orders)
     inventory = analyze_inventory(products)

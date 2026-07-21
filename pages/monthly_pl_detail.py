@@ -121,8 +121,6 @@ def make_pl_chart(df, title, has_team_costs=False):
 
 
 def show():
-    st.markdown('<div class="main-header">Monthly P&L Detail</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Month-by-month financial performance with variance analysis</div>', unsafe_allow_html=True)
 
     # Get integrated 2026 forecast
     team_members = st.session_state.get('team_members', [])

@@ -20,9 +20,6 @@ MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
 
 
 def show():
-    st.markdown('<div class="main-header">Shopify Analytics</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Live Sales, Orders, Products & Inventory</div>',
-                unsafe_allow_html=True)
 
     if not is_configured():
         st.error("Shopify not configured. Add `.env` file with SHOPIFY_STORE and SHOPIFY_ACCESS_TOKEN.")

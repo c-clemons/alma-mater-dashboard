@@ -22,8 +22,6 @@ def add_expense(expense):
 def show():
     """Display OpEx tracker"""
     
-    st.markdown('<div class="main-header">Operating Expense Tracker</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Manage recurring and one-time operating expenses</div>', unsafe_allow_html=True)
     
     # Info about baseline
     st.info("📋 **Baseline OpEx:** 13 expense items totaling ~$387K annually (Original $132K + Systems $255K from Matt's forecast). You can add custom expenses below.")

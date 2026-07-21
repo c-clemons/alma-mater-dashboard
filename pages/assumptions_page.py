@@ -68,8 +68,6 @@ def load_assumptions():
 def show():
     """Display assumptions page"""
     
-    st.markdown('<div class="main-header">Model Assumptions</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Configure revenue, costs, and operational parameters</div>', unsafe_allow_html=True)
     
     initialize_assumptions()
     

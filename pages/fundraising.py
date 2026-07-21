@@ -21,8 +21,6 @@ STATUS_OPTIONS = ["Projected", "Committed", "Closed", "TBD"]
 
 
 def show():
-    st.markdown('<div class="main-header">Fundraising Events</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Plan and track fundraising rounds and their cash flow impact</div>', unsafe_allow_html=True)
 
     # Load fundraising rounds from session state
     if 'fundraising_rounds' not in st.session_state:

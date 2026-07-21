@@ -136,8 +136,6 @@ def calculate_cash_runway(
 def show():
     """Display cash flow and runway calculator"""
     
-    st.markdown('<div class="main-header">Cash Flow & Runway Calculator</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Track cash position, burn rate, and runway projections</div>', unsafe_allow_html=True)
     
     st.info("💰 **Purpose:** Monitor your cash runway to ensure you have enough cash to reach profitability or your next funding milestone.")
     

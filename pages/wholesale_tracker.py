@@ -55,8 +55,6 @@ def calculate_deal_metrics(deal):
 def show():
     """Display wholesale deal tracker"""
     
-    st.markdown('<div class="main-header">Wholesale Deal Tracker</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Manage wholesale partnerships and revenue pipeline</div>', unsafe_allow_html=True)
     
     # Info about baseline
     st.info("📋 **Baseline Deals:** Spring 2026 (500 units, $72K) and Fall 2026 (1,500 units, $216K). Total: $288K. You can add custom deals below.")

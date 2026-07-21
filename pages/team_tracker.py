@@ -11,9 +11,6 @@ import pandas as pd
 def show():
     """Display aggregated team roster (no individual salary/cost figures)."""
 
-    st.markdown('<div class="main-header">Team & Payroll</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Aggregated headcount and monthly payroll burn</div>',
-                unsafe_allow_html=True)
 
     members = st.session_state.get('team_members', [])
 

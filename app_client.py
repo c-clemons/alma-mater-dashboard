@@ -172,6 +172,21 @@ PAGE_MIN = {
 ALL_PAGES = list(PAGE_MIN.keys())
 ADMIN_PAGE = "⚙ User Management"
 
+PAGE_ICONS = {
+    "Management Dashboard": "📊", "Shopify Analytics": "🛍", "Cash Flow & Runway": "💵",
+    "Monthly P&L Detail": "📄", "Fundraising": "🚀", "QBO Import": "📥",
+    "Assumptions": "🎛", "Team Tracker": "👥", "OpEx Tracker": "🧾",
+    "Wholesale Tracker": "📦", "Inventory Tracker": "🏷", "Export to PDF": "📤",
+}
+PAGE_EYEBROWS = {
+    "Shopify Analytics": "REVENUE", "Cash Flow & Runway": "FORECAST",
+    "Monthly P&L Detail": "FORECAST", "Fundraising": "CAPITAL", "QBO Import": "DATA",
+    "Assumptions": "MODEL", "Team Tracker": "PAYROLL", "OpEx Tracker": "OPERATING",
+    "Wholesale Tracker": "REVENUE", "Inventory Tracker": "OPERATIONS",
+    "Export to PDF": "REPORTS",
+}
+HERO_PAGES = {"Management Dashboard"}
+
 _ROLE_STORE = _roles.RoleStore(
     "alma",
     bucket="empirica-portals-state" if os.environ.get("K_SERVICE") else None,
@@ -222,7 +237,8 @@ def main():
         page = st.radio(
             "Select Page:",
             allowed,
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            format_func=lambda p: f"{PAGE_ICONS[p]} {p}" if p in PAGE_ICONS else p,
         )
 
         st.divider()
@@ -275,6 +291,10 @@ def main():
     if page == ADMIN_PAGE:
         render_user_admin(_ROLE_STORE, current_admin_email=email)
         return
+
+    # Central eyebrow + title (the Management Dashboard renders its own hero).
+    if page not in HERO_PAGES:
+        chrome.page_header(st, page, eyebrow=PAGE_EYEBROWS.get(page, "ALMA MATER"))
 
     # Main content - route to appropriate page
     if page == "Management Dashboard":

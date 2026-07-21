@@ -45,9 +45,7 @@ def _get_po_data():
 
 def show():
     """Display inventory tracker page."""
-    st.markdown('<div class="main-header">Inventory & PO Tracker</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="sub-header">Manage purchase orders, track inventory, and see constrained revenue impact</div>',
         unsafe_allow_html=True,
     )
 

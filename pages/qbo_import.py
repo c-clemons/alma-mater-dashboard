@@ -19,8 +19,6 @@ from qbo_parser import (
 
 
 def show():
-    st.markdown('<div class="main-header">QBO Actuals Import</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Upload QuickBooks P&L and Balance Sheet to update actuals</div>', unsafe_allow_html=True)
 
     # Current status
     qbo_data = st.session_state.get('qbo_actuals')

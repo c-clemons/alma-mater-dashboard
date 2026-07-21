@@ -869,9 +869,7 @@ def generate_pdf_report():
 
 def show():
     """Display PDF export page."""
-    st.markdown('<div class="main-header">Export Management Report</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="sub-header">Generate a professional PDF management report</div>',
         unsafe_allow_html=True,
     )
 

@@ -106,11 +106,6 @@ def _build_blended_2026(actuals, df_forecast):
 def show():
     """Display management dashboard — financial health in 60 seconds."""
 
-    st.markdown('<div class="main-header">Management Dashboard</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="sub-header">2026 Financial Health — YTD Actuals + Forecast</div>',
-        unsafe_allow_html=True
-    )
 
     # ---------- data setup ----------
     team_members = st.session_state.get('team_members', [])
@@ -138,6 +133,36 @@ def show():
     annual_ebitda = df_blended['EBITDA'].sum()
     gp_margin = (annual_gp / annual_revenue * 100) if annual_revenue > 0 else 0
     ebitda_margin = (annual_ebitda / annual_revenue * 100) if annual_revenue > 0 else 0
+
+    # ---------- Empirica hero + KPI strip ----------
+    from empirica_core.portal import chrome
+    ACCENT = "#b08d57"
+    rev_series = list(df_blended['Total Revenue'])
+    gp_series = list(df_blended['Gross Profit'])
+    ebitda_series = list(df_blended['EBITDA'])
+
+    hero_fig = go.Figure(go.Scatter(
+        x=list(df_blended['Month']), y=rev_series, mode="lines",
+        line=dict(color=ACCENT, width=2.5),
+        fill="tozeroy", fillcolor="rgba(176,141,87,0.12)",
+    ))
+    hero_fig.update_yaxes(tickformat="$,.2s")
+    chrome.render_hero(
+        eyebrow="2026 · YTD ACTUALS + FORECAST",
+        title="Financial health, at a glance",
+        subtitle="Blended monthly revenue across the full year — actuals to date, forecast beyond.",
+        fig=hero_fig, fig_height=210,
+    )
+    chrome.kpi_strip(st, [
+        dict(label="2026 Revenue (Blended)", value=f"${annual_revenue:,.0f}",
+             spark=rev_series, spark_color=ACCENT),
+        dict(label="Gross Profit", value=f"${annual_gp:,.0f}",
+             caption=f"{gp_margin:.0f}% margin", spark=gp_series, spark_color=ACCENT),
+        dict(label="EBITDA", value=f"${annual_ebitda:,.0f}",
+             caption=f"{ebitda_margin:.0f}% margin", spark=ebitda_series, spark_color=ACCENT),
+        dict(label="Total OpEx", value=f"${annual_opex:,.0f}"),
+    ], accent=ACCENT)
+    st.divider()
 
     # Pre-compute YTD actuals (used in multiple sections)
     ytd_actual_ebitda = 0

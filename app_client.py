@@ -242,16 +242,27 @@ def main():
 
         st.divider()
 
-        # Quick metrics
+        # Quick metrics — dynamic from the live model (no hardcoded values)
         st.markdown("### Quick Stats")
-        st.metric("2025 Revenue", "$101K")
-        st.metric("2026 Forecast", "$1.15M")
-        st.metric("Growth", "1,040% YoY")
         if qbo:
             st.metric("Current Cash", f"${qbo.get('latest_cash', 0):,.0f}")
-        else:
-            st.metric("Current Cash", "$41K")
-        st.metric("Cash Runway", "~2-3 months")
+        try:
+            from financial_calcs import generate_monthly_pl
+            df26 = generate_monthly_pl(
+                2026,
+                st.session_state.get('team_members', []),
+                st.session_state.get('opex_expenses', []),
+                st.session_state.get('wholesale_deals', []),
+                po_data=st.session_state.get('po_data'),
+                inventory_config=st.session_state.get('inventory_config'),
+            )
+            total_rev = float(df26['Total Revenue'].sum())
+            st.metric("2026 Revenue (Forecast)", f"${total_rev:,.0f}")
+            if 'Gross Profit' in df26.columns and total_rev > 0:
+                gm = float(df26['Gross Profit'].sum()) / total_rev * 100
+                st.metric("Gross Margin", f"{gm:.0f}%")
+        except Exception:
+            pass
 
         st.divider()
         chrome.render_footer(st.sidebar)

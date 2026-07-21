@@ -13,10 +13,11 @@ from data_persistence import get_data_store
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-# Page config
+# Page config — Empirica favicon
+from empirica_core.portal import theme as _emp_theme  # noqa: E402
 st.set_page_config(
-    page_title="Alma Mater Financial Dashboard",
-    page_icon="📊",
+    page_title="Alma Mater · Empirica",
+    page_icon=str(_emp_theme.FAVICON) if _emp_theme.FAVICON.exists() else "📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -24,7 +25,7 @@ st.set_page_config(
 # Empirica brand system + Alma customization
 from empirica_core.portal import chrome  # noqa: E402
 
-ALMA_LOGO = Path(__file__).parent / "assets" / "logo.svg"
+ALMA_LOGO = Path(__file__).parent / "assets" / "logo-dark.svg"  # light wordmark for the dark sidebar
 ALMA_ACCENT = "#b08d57"   # Alma's warm gold
 chrome.inject_brand_css(ALMA_ACCENT)
 

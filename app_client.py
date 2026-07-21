@@ -170,14 +170,8 @@ PAGE_MIN = {
     "Export to PDF":        "management",
 }
 ALL_PAGES = list(PAGE_MIN.keys())
-ADMIN_PAGE = "⚙ User Management"
+ADMIN_PAGE = "User Management"
 
-PAGE_ICONS = {
-    "Management Dashboard": "📊", "Shopify Analytics": "🛍", "Cash Flow & Runway": "💵",
-    "Monthly P&L Detail": "📄", "Fundraising": "🚀", "QBO Import": "📥",
-    "Assumptions": "🎛", "Team Tracker": "👥", "OpEx Tracker": "🧾",
-    "Wholesale Tracker": "📦", "Inventory Tracker": "🏷", "Export to PDF": "📤",
-}
 PAGE_EYEBROWS = {
     "Shopify Analytics": "REVENUE", "Cash Flow & Runway": "FORECAST",
     "Monthly P&L Detail": "FORECAST", "Fundraising": "CAPITAL", "QBO Import": "DATA",
@@ -238,7 +232,6 @@ def main():
             "Select Page:",
             allowed,
             label_visibility="collapsed",
-            format_func=lambda p: f"{PAGE_ICONS[p]} {p}" if p in PAGE_ICONS else p,
         )
 
         st.divider()

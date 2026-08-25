@@ -176,56 +176,62 @@ BASELINE_OPEX_MONTHLY = [
     {
         'expense_name': 'Marketing Channels — Mgmt',
         'category': 'Sales & Marketing',
-        'monthly_values': [14150, 12375, 11323, 21525, 22333.75, 19600, 22280, 22280, 22280, 20680, 20680, 20680],
+        'monthly_values': [14150, 12375, 11323, 21525, 22333.75, 19600, 22280, 27050, 27050, 27050, 27050, 27050],
         'notes': 'Brand/GTM/CMM/Email/SEO/Organic Social/Perf Mkt mgmt (Matt 2026 Budget R76)',
     },
     {
         'expense_name': 'Marketing Channels — Creative',
         'category': 'Sales & Marketing',
-        'monthly_values': [0, 0, 1425, 1000, 1600, 4540, 5040, 4540, 5040, 4540, 5040, 4540],
+        'monthly_values': [0, 0, 1425, 1000, 1600, 4540, 5040, 7640, 7040, 6540, 7040, 6540],
         'notes': 'Email/SEO/Perf Mkt creative production (Matt 2026 Budget R77)',
     },
     {
         'expense_name': 'Marketing Channels — Spend',
         'category': 'Sales & Marketing',
-        'monthly_values': [0, 0, 0, 0, 0, 10640, 15768, 15896, 10896, 8768, 21152, 21152],
+        'monthly_values': [0, 0, 0, 0, 0, 10640, 15768, 12650, 15800, 15900, 19152, 19152],
         'notes': 'Performance media buy + Direct Mail send costs (Matt 2026 Budget R78)',
     },
     {
         'expense_name': 'Marketing Channels — Systems',
         'category': 'Systems & Software',
-        'monthly_values': [0, 0, 0, 0, 0, 90, 90, 90, 90, 90, 90, 90],
+        'monthly_values': [0, 0, 0, 0, 0, 90, 90, 4199, 4199, 4199, 4199, 4199],
         'notes': 'PostPilot system fee (Matt 2026 Budget R79)',
     },
     {
         'expense_name': 'Channel — Mgmt',
         'category': 'Sales & Marketing',
-        'monthly_values': [0, 6100, 4750, 3291, 2250, 1000, 1000, 1000, 1000, 1000, 1000, 1000],
+        'monthly_values': [0, 6100, 4750, 3291, 2250, 1000, 1000, 0, 0, 0, 0, 0],
         'notes': 'Website management (Matt 2026 Budget R90)',
     },
     {
         'expense_name': 'Channel — Creative',
         'category': 'Sales & Marketing',
-        'monthly_values': [0, 0, 3900, 3125, 1100, 1100, 1100, 1100, 0, 0, 0, 0],
+        'monthly_values': [0, 0, 3900, 3125, 1100, 1100, 1100, 0, 0, 0, 0, 0],
         'notes': 'Website digital design + copy (Matt 2026 Budget R91)',
     },
     {
         'expense_name': 'Channel — Systems',
         'category': 'Systems & Software',
-        'monthly_values': [0, 2200, 150, 2403, 1600, 100, 100, 100, 100, 100, 100, 100],
+        'monthly_values': [0, 2200, 150, 2403, 1600, 100, 100, 0, 0, 0, 0, 0],
         'notes': 'Website development + Yotpo + A/B testing (Matt 2026 Budget R92)',
     },
     {
         'expense_name': 'General Systems — Loop+Yotpo',
         'category': 'Systems & Software',
-        'monthly_values': [0, 0, 0, 509, 509, 509, 509, 509, 509, 509, 509, 509],
+        'monthly_values': [0, 0, 0, 509, 509, 509, 509, 0, 0, 0, 0, 0],
         'notes': 'Loop Returns ($340) + Yotpo ($169) Apr-Dec (Matt 2026 Budget R101+R102)',
     },
     {
         'expense_name': 'General Systems — Shopify (old assumption)',
         'category': 'Systems & Software',
-        'monthly_values': [2850, 2850, 2850, 2850, 2850, 2850, 2850, 2850, 2850, 2850, 2850, 2850],
+        'monthly_values': [2850, 2850, 2850, 2850, 2850, 2850, 2850, 0, 0, 0, 0, 0],
         'notes': 'Using our $2,850/mo flat — Matt 2026 Budget showed $2,500 Mar-Aug only ($15K). Confirm with Matt.',
+    },
+    {
+        'expense_name': 'Marketing — Projects',
+        'category': 'Sales & Marketing',
+        'monthly_values': [0, 0, 0, 0, 0, 0, 0, 5650, 0, 0, 0, 0],
+        'notes': 'Aug: Creator Program + Microsites + Investor Interviews (Matt Aug 2026 update)',
     },
 ]
 
@@ -312,7 +318,7 @@ BASELINE_OPEX_MONTHLY_2027 = [
     {
         'expense_name': 'General Systems — Loop+Yotpo',
         'category': 'Systems & Software',
-        'monthly_values': [0, 0, 0, 509, 509, 509, 509, 509, 509, 509, 509, 509],
+        'monthly_values': [0, 0, 0, 509, 509, 509, 509, 0, 0, 0, 0, 0],
         'notes': 'Carry-forward from 2026 (Matt did not update for 2027)',
     },
     {
@@ -406,7 +412,7 @@ BASELINE_OPEX_MONTHLY_2028 = [
     {
         'expense_name': 'General Systems — Loop+Yotpo',
         'category': 'Systems & Software',
-        'monthly_values': [0, 0, 0, 509, 509, 509, 509, 509, 509, 509, 509, 509],
+        'monthly_values': [0, 0, 0, 509, 509, 509, 509, 0, 0, 0, 0, 0],
         'notes': 'Carry-forward from 2026 (Matt did not update for 2028)',
     },
     {

@@ -241,8 +241,11 @@ def calculate_dtc_revenue_monthly(year: int = 2026, discount_rate: float = 0.0, 
             monthly_cogs[month] = gross_revenue * cogs_rate
 
     elif year == 2027:
-        # 2027 Forecast from Matt's Forecast tab
-        orders   = [84, 112, 216, 360, 396, 396, 396, 320, 288, 272, 440, 330]
+        # 2027 Forecast from Matt's Forecast tab (updated Aug 2026)
+        # Monthly $ back-solved as orders at current AOV curve. Annual: $725,766
+        # Jan  Feb  Mar  Apr  May  Jun  Jul  Aug  Sep  Oct  Nov  Dec
+        # 14.9 12.7 37.1 40.1 58.4 86.4 89.3 88.2 83.3 74.3 65.5 75.6  ($K)
+        orders   = [42.53, 36.21, 98.88, 94.38, 129.80, 192.00, 198.33, 207.53, 196.00, 174.92, 163.80, 189.00]
         monthly_aov = [350, 350, 375, 425, 450, 450, 450, 425, 425, 425, 400, 400]
         cogs_rate = 0.40
 

@@ -228,9 +228,12 @@ def calculate_dtc_revenue_monthly(year: int = 2026, discount_rate: float = 0.0, 
     monthly_cogs = {month: 0.0 for month in range(1, 13)}
     
     if year == 2026:
-        # 2026 Forecast from Matt's Marketing/Ecom Budget — Forecast tab (May 2026)
-        orders   = [27, 35, 91, 133.7, 194.7, 288, 297.5, 180, 156, 180, 396, 267]
-        monthly_aov = [551.26, 362.06, 407.47, 300, 300, 300, 300, 300, 300, 300, 300, 300]
+        # 2026 Forecast from Matt's Marketing/Ecom Budget — Forecast tab
+        # Aug-Dec refreshed per Matt's Aug 21 2026 update: AOV=$350, traffic aligned
+        # to ~3,500/wk trend (up Aug-Oct, down Nov-Dec, no Holiday sale), CVR tuned
+        # up Aug-Oct and down Nov-Dec. Result: +$33K vs prior Aug-Dec plan.
+        orders   = [27, 35, 91, 133.7, 194.7, 288, 297.5, 252, 238, 212.4, 187.2, 216]
+        monthly_aov = [551.26, 362.06, 407.47, 300, 300, 300, 300, 350, 350, 350, 350, 350]
         cogs_rate = 0.40
 
         for month in range(1, 13):
@@ -241,11 +244,8 @@ def calculate_dtc_revenue_monthly(year: int = 2026, discount_rate: float = 0.0, 
             monthly_cogs[month] = gross_revenue * cogs_rate
 
     elif year == 2027:
-        # 2027 Forecast from Matt's Forecast tab (updated Aug 2026)
-        # Monthly $ back-solved as orders at current AOV curve. Annual: $725,766
-        # Jan  Feb  Mar  Apr  May  Jun  Jul  Aug  Sep  Oct  Nov  Dec
-        # 14.9 12.7 37.1 40.1 58.4 86.4 89.3 88.2 83.3 74.3 65.5 75.6  ($K)
-        orders   = [42.53, 36.21, 98.88, 94.38, 129.80, 192.00, 198.33, 207.53, 196.00, 174.92, 163.80, 189.00]
+        # 2027 Forecast from Matt's Forecast tab (original May 2026 version)
+        orders   = [84, 112, 216, 360, 396, 396, 396, 320, 288, 272, 440, 330]
         monthly_aov = [350, 350, 375, 425, 450, 450, 450, 425, 425, 425, 400, 400]
         cogs_rate = 0.40
 

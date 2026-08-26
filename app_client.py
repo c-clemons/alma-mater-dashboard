@@ -151,9 +151,10 @@ def check_password() -> bool:
 def main():
     """Main app"""
 
-    # Auth gate
-    if not check_password():
-        return
+    # Authentication is handled at the network layer by Cloudflare Access
+    # (email allowlist on almamater.empirica-analytics.com). No in-app
+    # password required — anyone who reached this code was already verified
+    # by CF Access as chandler@empirica-analytics.com or nathan@almamaterfootwear.com.
 
     # Initialize
     init_session_state()

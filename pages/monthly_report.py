@@ -39,24 +39,56 @@ def _load_json(name):
         return json.load(f)
 
 
+ALLOWED_EMAILS = {
+    'chandler@empirica-analytics.com',
+    'nathan@almamaterfootwear.com',
+}
+
+
+def _get_cf_access_email():
+    """Return the email Cloudflare Access authenticated for this request.
+
+    Cloudflare Access injects `Cf-Access-Authenticated-User-Email` on every
+    request it forwards to the origin (case-insensitive). Streamlit exposes
+    incoming request headers via `st.context.headers` on 1.35+.
+    """
+    try:
+        headers = st.context.headers or {}
+    except Exception:
+        return None
+    for key in ('Cf-Access-Authenticated-User-Email',
+                'cf-access-authenticated-user-email',
+                'CF-Access-Authenticated-User-Email'):
+        v = headers.get(key)
+        if v:
+            return v.strip().lower()
+    return None
+
+
 def _gate_nathan():
-    """Second password gate — only Nathan (or Chandler with the password) sees content."""
-    if st.session_state.get('nathan_authenticated'):
+    """Gate by Cloudflare Access email — no in-app password.
+
+    Cloudflare Access is the primary gate at the network layer. The app
+    additionally restricts this page to a fixed allowlist so only Nathan
+    (or Chandler for support) sees it, even if CF Access is later widened
+    to more Alma Mater team members.
+    """
+    email = _get_cf_access_email()
+    if email and email in ALLOWED_EMAILS:
         return True
 
     st.markdown("### Monthly Management Report")
-    st.info(
-        "This page is restricted. Enter the report access password to continue.\n\n"
-        "*Chandler will share this password separately from the dashboard login.*"
-    )
-    pw = st.text_input("Report access password", type="password", key="nathan_pw_input")
-    if pw:
-        expected = st.secrets.get('nathan_password')
-        if expected and pw == expected:
-            st.session_state.nathan_authenticated = True
-            st.rerun()
-        else:
-            st.error("Incorrect password.")
+    if email:
+        st.error(
+            f"This page is restricted to Nathan and Chandler. "
+            f"You're signed in via Cloudflare Access as `{email}` — access denied for this page."
+        )
+    else:
+        st.warning(
+            "This page is restricted. Cloudflare Access identity is required "
+            "but no Cf-Access-Authenticated-User-Email header is present. "
+            "If you are seeing this message, contact Chandler."
+        )
     return False
 
 

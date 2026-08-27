@@ -103,6 +103,147 @@ def _build_blended_2026(actuals, df_forecast):
     return pd.DataFrame(rows)
 
 
+def _fmt_k(v):
+    """Compact K/M formatter for exec summary tiles."""
+    if v is None:
+        return '$0'
+    sign = '-' if v < 0 else ''
+    a = abs(v)
+    if a >= 1_000_000:
+        return f"{sign}${a/1_000_000:.2f}M"
+    if a >= 1_000:
+        return f"{sign}${a/1_000:.0f}K"
+    return f"{sign}${a:,.0f}"
+
+
+def _fmt_n(v):
+    return f"{round(v or 0):,}"
+
+
+def _load_marketing_snapshot():
+    """Load Full Stream Group monthly snapshot (marketing_monthly.json)."""
+    import json
+    from pathlib import Path
+    p = Path(__file__).parent.parent / 'data' / 'marketing_monthly.json'
+    if not p.exists():
+        return None
+    with open(p) as f:
+        return json.load(f)
+
+
+def _render_executive_summary(actuals, n_actual):
+    """3-row KPI block: financial YTD + Shopify YTD + Meta Ads (current month).
+
+    Mirrors the block on the Monthly Report page so both stay in sync as
+    monthly closes and Matt's snapshots land.
+    """
+    if not actuals or n_actual == 0:
+        return
+
+    mkt = _load_marketing_snapshot()
+    m = n_actual
+    month_name = MONTHS[m - 1]
+
+    qbo_full = st.session_state.get('qbo_actuals') or {}
+    qbo = qbo_full.get('qbo_actuals', qbo_full)
+    pl = qbo.get('pl_data', {})
+
+    def month_series(key):
+        item = pl.get(key, {})
+        return [item.get(f"2026_{i}", 0) or 0 for i in range(1, 13)]
+
+    rev_m = month_series('Total Revenue')
+    gp_m = month_series('Gross Profit')
+    ni_m = month_series('Net Income')
+
+    ytd_rev = sum(rev_m[:m])
+    ytd_gp = sum(gp_m[:m])
+    ytd_gp_pct = (ytd_gp / ytd_rev * 100) if ytd_rev else 0
+
+    cash_data = qbo.get('cash_data', {})
+    end_cash = cash_data.get(f'2026_{m}', 0)
+    prev_cash = cash_data.get(f'2026_{m-1}', 0) if m >= 2 else 0
+    cash_delta = end_cash - prev_cash
+
+    mo_rev = rev_m[m - 1]
+    prev_rev = rev_m[m - 2] if m >= 2 else 0
+    mo_ni = ni_m[m - 1]
+    prev_ni = ni_m[m - 2] if m >= 2 else 0
+    mo_gp_pct = (gp_m[m - 1] / mo_rev * 100) if mo_rev else 0
+
+    st.markdown("## Executive Summary")
+    if mkt and mo_rev and prev_rev:
+        perf = mkt.get('perf_marketing_monthly', {}).get(str(m)) or mkt.get('perf_marketing_monthly', {}).get(m) or {}
+        st.caption(
+            f"{month_name} revenue {((mo_rev/prev_rev-1)*100):+.0f}% MoM to {_fmt_k(mo_rev)}. "
+            f"GM {mo_gp_pct:.1f}%. "
+            + (f"Meta ads full-month ROAS {perf.get('roas', 0):.2f} vs 4.0 target." if perf else "")
+        )
+
+    # Row 1 — Financial YTD + current month
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.metric("YTD Revenue", _fmt_k(ytd_rev), f"{_fmt_k(ytd_rev/m)}/mo avg")
+    with c2:
+        st.metric("Gross Margin YTD", f"{ytd_gp_pct:.1f}%", f"{_fmt_k(ytd_gp)} gross profit")
+    with c3:
+        st.metric(f"End-{month_name} Cash", _fmt_k(end_cash),
+                  f"{_fmt_k(cash_delta)} MoM",
+                  delta_color='normal' if cash_delta >= 0 else 'inverse')
+    with c4:
+        st.metric(f"{month_name} Net Loss", _fmt_k(mo_ni),
+                  f"{_fmt_k(mo_ni - prev_ni)} vs prior mo")
+
+    # Row 2 — Shopify (Matt's snapshot)
+    if mkt:
+        ecomm = mkt.get('ecomm_monthly', {})
+        adjg = ecomm.get('adjg', [])
+        orders = ecomm.get('orders', [])
+        new_cust = ecomm.get('new_cust', [])
+        net_rev = ecomm.get('net_rev', [])
+        ytd_adj = sum(adjg[:m]) if adjg else 0
+        ytd_orders = sum(orders[:m]) if orders else 0
+        ytd_new = sum(new_cust[:m]) if new_cust else 0
+        ytd_net = sum(net_rev[:m]) if net_rev else 0
+        mo_adj = adjg[m - 1] if len(adjg) >= m else 0
+        mo_orders = orders[m - 1] if len(orders) >= m else 0
+        mo_new = new_cust[m - 1] if len(new_cust) >= m else 0
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            st.metric("Shopify YTD Adj Gross", _fmt_k(ytd_adj), f"{_fmt_n(ytd_orders)} orders")
+        with c2:
+            st.metric(f"Shopify {month_name} Adj Gross", _fmt_k(mo_adj), f"{_fmt_n(mo_orders)} orders")
+        with c3:
+            st.metric("YTD New Customers", _fmt_n(ytd_new), f"{month_name}: {_fmt_n(mo_new)}")
+        with c4:
+            st.metric("Shopify Net Rev YTD", _fmt_k(ytd_net), "after returns")
+
+        # Row 3 — Meta Ads (current month)
+        perf = mkt.get('perf_marketing_monthly', {}).get(str(m)) or mkt.get('perf_marketing_monthly', {}).get(m) or {}
+        if perf:
+            roas = perf.get('roas', 0) or 0
+            cpa = perf.get('cpa', 0) or 0
+            ctr = (perf.get('ctr', 0) or 0) * 100
+            cpm = perf.get('cpm', 0) or 0
+            c1, c2, c3, c4 = st.columns(4)
+            with c1:
+                st.metric(f"ROAS ({month_name})", f"{roas:.2f}",
+                          "Target: 4.0" + (" ✓" if roas >= 4 else " ✗"),
+                          delta_color='normal' if roas >= 4 else 'inverse')
+            with c2:
+                st.metric(f"CPA ({month_name})", f"${cpa:.2f}",
+                          "Target: $60" + (" ✓" if cpa <= 60 else " ✗"),
+                          delta_color='normal' if cpa <= 60 else 'inverse')
+            with c3:
+                st.metric(f"CTR ({month_name})", f"{ctr:.1f}%",
+                          "Target: 2%" + (" ✓" if ctr >= 2 else " ✗"),
+                          delta_color='normal' if ctr >= 2 else 'inverse')
+            with c4:
+                st.metric(f"CPM ({month_name})", f"${cpm:.2f}", "Target ~$19 (2x golfer)")
+
+    st.divider()
+
+
 def show():
     """Display management dashboard — financial health in 60 seconds."""
 
@@ -177,6 +318,12 @@ def show():
         net_cash = actuals['latest_cash'] - actuals['latest_ap']
 
     # ================================================================
+    # EXECUTIVE SUMMARY (mirrors Monthly Report page, above the QBO
+    # ACTUALS block; auto-updates from qbo_actuals + marketing_monthly.json)
+    # ================================================================
+    _render_executive_summary(actuals, n_actual)
+
+    # ================================================================
     # ROW 1: CASH POSITION BANNER
     # ================================================================
     if actuals and n_actual > 0:
@@ -217,8 +364,7 @@ def show():
             st.metric("Net Cash Position", f"${net_cash:,.0f}")
             st.caption(cash_label)
         with c4:
-            st.metric("Days of Cash", f"{days_of_cash_net} days")
-            st.caption(f"{months_of_cash_net} months")
+            st.metric("Days of Cash (without investment)", f"{days_of_cash_net} days")
 
         # Second row: additional burn/runway metrics
         c5, c6, c7, c8 = st.columns(4)
@@ -462,199 +608,75 @@ def show():
     st.divider()
 
     # ================================================================
-    # ROW 3: YTD PERFORMANCE vs FORECAST
-    # ================================================================
-    if n_actual > 0:
-        st.markdown("## YTD Performance vs Forecast")
-
-        ytd_forecast_rev = df_forecast['Total Revenue'].iloc[:n_actual].sum()
-        ytd_forecast_gp = df_forecast['Gross Profit'].iloc[:n_actual].sum()
-        ytd_forecast_opex = df_forecast['Total OpEx'].iloc[:n_actual].sum()
-        ytd_forecast_ebitda = df_forecast['EBITDA'].iloc[:n_actual].sum()
-
-        c1, c2, c3, c4 = st.columns(4)
-        with c1:
-            var_pct = ((ytd_actual_rev / ytd_forecast_rev - 1) * 100) if ytd_forecast_rev else 0
-            st.metric(
-                f"YTD Revenue ({MONTHS[n_actual-1]})",
-                f"${ytd_actual_rev:,.0f}",
-                delta=f"{var_pct:+.0f}% vs forecast (${ytd_forecast_rev:,.0f})",
-                delta_color="normal" if var_pct >= 0 else "inverse"
-            )
-        with c2:
-            gp_pct = ((ytd_actual_gp / ytd_actual_rev * 100) if ytd_actual_rev > 0 else 0)
-            st.metric(
-                "YTD Gross Profit",
-                f"${ytd_actual_gp:,.0f}",
-                delta=f"{gp_pct:.0f}% margin"
-            )
-        with c3:
-            opex_var = ytd_actual_opex - ytd_forecast_opex
-            st.metric(
-                "YTD OpEx",
-                f"${ytd_actual_opex:,.0f}",
-                delta=f"{'+'if opex_var>=0 else ''}{opex_var:,.0f} vs forecast",
-                delta_color="inverse" if opex_var > 0 else "normal"
-            )
-        with c4:
-            st.metric(
-                "YTD EBITDA",
-                f"${ytd_actual_ebitda:,.0f}",
-                delta=f"${ytd_actual_ebitda - ytd_forecast_ebitda:+,.0f} vs forecast",
-                delta_color="normal" if ytd_actual_ebitda >= ytd_forecast_ebitda else "inverse"
-            )
-
-        st.divider()
-
-    # ================================================================
-    # ROW 4: 2026 OUTLOOK — BLENDED
-    # ================================================================
-    st.markdown("## 2026 Outlook — YTD Actuals + Remaining Forecast")
-
-    fc_revenue = df_forecast['Total Revenue'].sum()
-    fc_ebitda = df_forecast['EBITDA'].sum()
-    rev_var = annual_revenue - fc_revenue
-    ebitda_var = annual_ebitda - fc_ebitda
-
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        delta = f"{'+'if rev_var>=0 else ''}{rev_var:,.0f} vs plan" if n_actual > 0 else None
-        st.metric("Total Revenue", f"${annual_revenue:,.0f}", delta=delta,
-                  delta_color="normal" if rev_var >= 0 else "inverse")
-    with c2:
-        st.metric("Gross Profit", f"${annual_gp:,.0f}", delta=f"{gp_margin:.0f}% margin")
-    with c3:
-        st.metric("Total OpEx", f"${annual_opex:,.0f}")
-    with c4:
-        delta_e = f"{'+'if ebitda_var>=0 else ''}{ebitda_var:,.0f} vs plan" if n_actual > 0 else f"{ebitda_margin:.0f}% margin"
-        st.metric("EBITDA", f"${annual_ebitda:,.0f}", delta=delta_e,
-                  delta_color="normal" if annual_ebitda >= 0 else "inverse")
-
-    # ================================================================
-    # MONTHLY REVENUE CHART
-    # ================================================================
-    st.divider()
-    st.markdown("## Monthly Revenue")
-
-    fig_rev = go.Figure()
-
-    if n_actual > 0:
-        fig_rev.add_trace(go.Bar(
-            name='DTC (Actual)', x=MONTHS[:n_actual],
-            y=df_blended['DTC Revenue'].iloc[:n_actual],
-            marker_color=ACTUAL_COLOR,
-        ))
-        fig_rev.add_trace(go.Bar(
-            name='Wholesale (Actual)', x=MONTHS[:n_actual],
-            y=df_blended['Wholesale Revenue'].iloc[:n_actual],
-            marker_color=ACCENT_PURPLE,
-        ))
-
-    if n_actual < 12:
-        fig_rev.add_trace(go.Bar(
-            name='DTC (Forecast)', x=MONTHS[n_actual:],
-            y=df_blended['DTC Revenue'].iloc[n_actual:],
-            marker_color=FORECAST_COLOR,
-        ))
-        fig_rev.add_trace(go.Bar(
-            name='Wholesale (Forecast)', x=MONTHS[n_actual:],
-            y=df_blended['Wholesale Revenue'].iloc[n_actual:],
-            marker_color='#D8BFD8',
-        ))
-
-    fig_rev.update_layout(
-        barmode='stack', height=350, showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        yaxis_title="Revenue ($)", yaxis_tickformat="$,.0f",
-    )
-    if 0 < n_actual < 12:
-        fig_rev.add_vline(
-            x=n_actual - 0.5, line_dash="dash", line_color="gray",
-            annotation_text="Actuals | Forecast", annotation_position="top"
-        )
-    st.plotly_chart(fig_rev, use_container_width=True)
-
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        dtc_total = df_blended['DTC Revenue'].sum()
-        st.metric("DTC Revenue (Blended)", f"${dtc_total:,.0f}",
-                  delta=f"{(dtc_total/annual_revenue*100):.0f}% of total" if annual_revenue else None)
-    with col2:
-        ws_total = df_blended['Wholesale Revenue'].sum()
-        st.metric("Wholesale Revenue (Blended)", f"${ws_total:,.0f}",
-                  delta=f"{(ws_total/annual_revenue*100):.0f}% of total" if annual_revenue else None)
-    with col3:
-        st.metric("Total Revenue (Blended)", f"${annual_revenue:,.0f}")
-
-    # ================================================================
-    # MONTHLY EBITDA CHART
-    # ================================================================
-    st.divider()
-    st.markdown("## Monthly EBITDA")
-
-    ebitda_colors = []
-    for i, row in df_blended.iterrows():
-        if row['Source'] == 'Actual':
-            ebitda_colors.append(POSITIVE_COLOR if row['EBITDA'] >= 0 else NEGATIVE_COLOR)
-        else:
-            ebitda_colors.append(FORECAST_COLOR if row['EBITDA'] >= 0 else '#FFB3B3')
-
-    fig_ebitda = go.Figure()
-    fig_ebitda.add_trace(go.Bar(
-        x=df_blended['Month'], y=df_blended['EBITDA'],
-        marker_color=ebitda_colors,
-        text=[f"${v:,.0f}" for v in df_blended['EBITDA']],
-        textposition='outside', textfont_size=9,
-    ))
-    fig_ebitda.update_layout(
-        height=350, showlegend=False,
-        yaxis_title="EBITDA ($)", yaxis_tickformat="$,.0f",
-    )
-    if 0 < n_actual < 12:
-        fig_ebitda.add_vline(x=n_actual - 0.5, line_dash="dash", line_color="gray")
-    st.plotly_chart(fig_ebitda, use_container_width=True)
-
-    # ================================================================
-    # CASH RUNWAY PROJECTION
+    # CASH RUNWAY PROJECTION (with $1M SAFE closing October)
     # ================================================================
     if actuals and n_actual > 0:
         st.divider()
         st.markdown("## Cash Runway Projection")
+        st.caption(
+            "Projection assumes a **$1M SAFE note closes in October**. "
+            "Both scenarios (with and without the raise) are shown."
+        )
 
         cash_hist = actuals.get('cash_history', {})
         actual_cash = [cash_hist.get(f'2026_{m}', None) for m in range(1, n_actual + 1)]
         actual_cash = [c for c in actual_cash if c is not None]
 
-        projected_cash = [net_cash]
+        # Baseline projection (no new capital)
+        projected_no_safe = [net_cash]
         for m in range(n_actual, 12):
-            monthly_ebitda = df_blended['EBITDA'].iloc[m]
-            projected_cash.append(projected_cash[-1] + monthly_ebitda)
+            projected_no_safe.append(projected_no_safe[-1] + df_blended['EBITDA'].iloc[m])
+
+        # With $1M SAFE in October (Oct = index 9)
+        SAFE_AMOUNT = 1_000_000
+        SAFE_MONTH_IDX = 9
+        projected_with_safe = [net_cash]
+        for m in range(n_actual, 12):
+            step = projected_with_safe[-1] + df_blended['EBITDA'].iloc[m]
+            if m == SAFE_MONTH_IDX:
+                step += SAFE_AMOUNT
+            projected_with_safe.append(step)
 
         fig_cash = go.Figure()
-
         if actual_cash:
             fig_cash.add_trace(go.Scatter(
                 x=MONTHS[:len(actual_cash)], y=actual_cash,
                 mode='lines+markers', name='Actual Cash',
                 line=dict(color=ACTUAL_COLOR, width=3), marker=dict(size=8),
             ))
-
         proj_months = MONTHS[n_actual - 1:12]
         fig_cash.add_trace(go.Scatter(
-            x=proj_months, y=projected_cash,
-            mode='lines+markers', name='Projected Cash',
+            x=proj_months, y=projected_no_safe,
+            mode='lines+markers', name='Projected — no new capital',
             line=dict(color=FORECAST_COLOR, width=2, dash='dash'), marker=dict(size=6),
         ))
-
+        fig_cash.add_trace(go.Scatter(
+            x=proj_months, y=projected_with_safe,
+            mode='lines+markers', name='Projected — with $1M SAFE (Oct)',
+            line=dict(color=POSITIVE_COLOR, width=2.5), marker=dict(size=7),
+        ))
         fig_cash.add_hline(y=0, line_dash="dot", line_color="red",
                            annotation_text="Zero Cash", annotation_position="bottom right")
-
         fig_cash.update_layout(
-            height=350, showlegend=True,
+            height=380, showlegend=True,
             yaxis_title="Cash ($)", yaxis_tickformat="$,.0f",
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         )
         st.plotly_chart(fig_cash, use_container_width=True)
+
+        # End-year comparison + break points
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.metric("End-Dec (no SAFE)", f"${projected_no_safe[-1]:,.0f}")
+        with c2:
+            st.metric("End-Dec (with SAFE)", f"${projected_with_safe[-1]:,.0f}",
+                      delta=f"+${SAFE_AMOUNT:,.0f} raise")
+        with c3:
+            zero_month = next(
+                (proj_months[i] for i, v in enumerate(projected_no_safe) if v <= 0),
+                None
+            )
+            st.metric("Zero-cash month (no SAFE)", zero_month if zero_month else "Not reached in 2026")
 
     # ================================================================
     # BLENDED P&L SUMMARY TABLE

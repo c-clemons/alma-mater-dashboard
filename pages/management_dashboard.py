@@ -611,7 +611,6 @@ def show():
     # CASH RUNWAY PROJECTION (with $1M SAFE closing October)
     # ================================================================
     if actuals and n_actual > 0:
-        st.divider()
         st.markdown("## Cash Runway Projection")
         st.caption(
             "Projection assumes a **$1M SAFE note closes in October**. "

@@ -154,17 +154,23 @@ from empirica_core.portal.admin import render_user_admin  # noqa: E402
 BOOTSTRAP_ADMINS = ["chandler@empirica-analytics.com"]
 
 # Minimum role required to SEE each page (order = nav order).
-# admin > management > employee > investor.  Team Tracker = payroll → management+.
+# admin > management > employee > investor.
+# Matrix per Aug 27 2026 spec:
+#   investor  → Management Dashboard only
+#   employee  → Dashboard + Shopify Analytics + Wholesale Tracker + Inventory Tracker
+#   management → everything except User Management
+#   admin     → everything including User Management
 PAGE_MIN = {
     "Management Dashboard": "investor",
+    "Monthly Report":       "management",
     "Shopify Analytics":    "employee",
-    "Cash Flow & Runway":   "investor",
+    "Cash Flow & Runway":   "management",
     "Monthly P&L Detail":   "management",
     "Fundraising":          "management",
     "QBO Import":           "management",
     "Assumptions":          "management",
     "Team Tracker":         "management",
-    "OpEx Tracker":         "employee",
+    "OpEx Tracker":         "management",
     "Wholesale Tracker":    "employee",
     "Inventory Tracker":    "employee",
     "Export to PDF":        "management",
@@ -294,6 +300,9 @@ def main():
     if page == "Management Dashboard":
         from pages import management_dashboard
         management_dashboard.show()
+    elif page == "Monthly Report":
+        from pages import monthly_report
+        monthly_report.show()
     elif page == "Shopify Analytics":
         from pages import shopify_analytics
         shopify_analytics.show()

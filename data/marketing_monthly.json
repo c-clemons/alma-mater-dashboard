@@ -1,0 +1,360 @@
+{
+  "source": "Full Stream Group monthly snapshot",
+  "last_updated": "2026-08-25",
+  "through_month": 7,
+  "through_year": 2026,
+  "ecomm_monthly": {
+    "sessions": [
+      5973.0,
+      4727.0,
+      11506.0,
+      8699.0,
+      10730.0,
+      8523.0,
+      16120.0,
+      8653.0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "orders": [
+      27.0,
+      35.0,
+      104.0,
+      145.0,
+      158.0,
+      138.0,
+      252.0,
+      153.0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "cvr": [
+      0.005,
+      0.009,
+      0.013,
+      0.018,
+      0.017,
+      0.018,
+      0.016,
+      0.009,
+      0,
+      0,
+      0,
+      0
+    ],
+    "aov": [
+      272.0,
+      269.0,
+      253.0,
+      234.0,
+      207.0,
+      205.0,
+      220.0,
+      254.0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "adjg": [
+      7454.0,
+      10224.0,
+      24941.0,
+      35019.0,
+      31192.0,
+      29894.0,
+      58176.0,
+      40092.0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "net_returns": [
+      -2299.0,
+      -2592.0,
+      -6941.0,
+      -6797.0,
+      -4436.0,
+      -6746.0,
+      -10996.0,
+      -10676.0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "net_rev": [
+      5270.0,
+      7949.0,
+      19152.0,
+      32974.0,
+      28686.0,
+      25222.0,
+      48807.0,
+      30928.0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "customers": [
+      27.0,
+      34.0,
+      104.0,
+      145.0,
+      157.0,
+      137.0,
+      247.0,
+      148.0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "new_cust": [
+      27.0,
+      30.0,
+      81.0,
+      119.0,
+      127.0,
+      111.0,
+      207.0,
+      113.0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "perf_marketing_monthly": {
+    "7": {
+      "budget": 10000.0,
+      "ad_spend": 6853.99,
+      "pct_budget": 0.685399,
+      "ad_revenue": 34197.09,
+      "roas": 4.99,
+      "cpm": 43.09,
+      "impressions": 159100.0,
+      "clicks": 5754.0,
+      "ctr": 0.036,
+      "cpc": 1.19,
+      "cpa": 56.19
+    }
+  },
+  "emailsms": [
+    {
+      "channel": "email",
+      "month": "March",
+      "recipients": 5275.0,
+      "open_rate": 0.4174,
+      "click_rate": 0.0144,
+      "revenue": 1427.4,
+      "orders": 5.0
+    },
+    {
+      "channel": "sms",
+      "month": "March",
+      "recipients": 216.0,
+      "open_rate": 0,
+      "click_rate": 0.0787,
+      "revenue": 0,
+      "orders": 0
+    },
+    {
+      "channel": "email",
+      "month": "April",
+      "recipients": 2763.0,
+      "open_rate": 0.8111,
+      "click_rate": 0.0253,
+      "revenue": 2174.04,
+      "orders": 8.0
+    },
+    {
+      "channel": "email",
+      "month": "May",
+      "recipients": 5522.0,
+      "open_rate": 0.8149,
+      "click_rate": 0.0311,
+      "revenue": 3206.67,
+      "orders": 12.0
+    },
+    {
+      "channel": "email",
+      "month": "June",
+      "recipients": 5470.0,
+      "open_rate": 0.8011,
+      "click_rate": 0.0154,
+      "revenue": 1109.95,
+      "orders": 8.0
+    },
+    {
+      "channel": "email",
+      "month": "July",
+      "recipients": 10863.0,
+      "open_rate": 0.6557,
+      "click_rate": 0.0197,
+      "revenue": 4808.16,
+      "orders": 19.0
+    },
+    {
+      "channel": "email",
+      "month": "August",
+      "recipients": 11092.0,
+      "open_rate": 0.643,
+      "click_rate": 0.0237,
+      "revenue": 4438.28,
+      "orders": 20.0
+    },
+    {
+      "channel": "sms",
+      "month": "August",
+      "recipients": 171.0,
+      "open_rate": 0,
+      "click_rate": 0.1579,
+      "revenue": 308.0,
+      "orders": 1.0
+    }
+  ],
+  "automations": [
+    {
+      "channel": "email",
+      "month": "January",
+      "delivery": 76.0,
+      "open_rate": 0.6053,
+      "click_rate": 0.1184,
+      "revenue": 1774.2,
+      "orders": 4.0
+    },
+    {
+      "channel": "email",
+      "month": "February",
+      "delivery": 60.0,
+      "open_rate": 0.65,
+      "click_rate": 0.25,
+      "revenue": 2922.4,
+      "orders": 6.0
+    },
+    {
+      "channel": "email",
+      "month": "March",
+      "delivery": 132.0,
+      "open_rate": 0.553,
+      "click_rate": 0.0833,
+      "revenue": 3239.12,
+      "orders": 8.0
+    },
+    {
+      "channel": "sms",
+      "month": "March",
+      "delivery": 1.0,
+      "open_rate": 0,
+      "click_rate": 1.0,
+      "revenue": 0,
+      "orders": 0
+    },
+    {
+      "channel": "email",
+      "month": "April",
+      "delivery": 55.0,
+      "open_rate": 0.8,
+      "click_rate": 0.1636,
+      "revenue": 1612.8,
+      "orders": 6.0
+    },
+    {
+      "channel": "email",
+      "month": "April",
+      "delivery": 3.0,
+      "open_rate": 0,
+      "click_rate": 1.0,
+      "revenue": 0,
+      "orders": 0
+    },
+    {
+      "channel": "email",
+      "month": "May",
+      "delivery": 52.0,
+      "open_rate": 0.8077,
+      "click_rate": 0.2885,
+      "revenue": 1147.16,
+      "orders": 3.0
+    },
+    {
+      "channel": "email",
+      "month": "June",
+      "delivery": 243.0,
+      "open_rate": 0.823,
+      "click_rate": 0.1399,
+      "revenue": 1200.89,
+      "orders": 4.0
+    },
+    {
+      "channel": "sms",
+      "month": "June",
+      "delivery": 19.0,
+      "open_rate": 0,
+      "click_rate": 0.0526,
+      "revenue": 288.0,
+      "orders": 1.0
+    },
+    {
+      "channel": "email",
+      "month": "July",
+      "delivery": 453.0,
+      "open_rate": 0.7152,
+      "click_rate": 0.0751,
+      "revenue": 1639.54,
+      "orders": 6.0
+    },
+    {
+      "channel": "sms",
+      "month": "July",
+      "delivery": 47.0,
+      "open_rate": 0,
+      "click_rate": 0.2128,
+      "revenue": 0,
+      "orders": 0
+    },
+    {
+      "channel": "email",
+      "month": "August",
+      "delivery": 1661.0,
+      "open_rate": 0.1126,
+      "click_rate": 0.0102,
+      "revenue": 646.64,
+      "orders": 3.0
+    },
+    {
+      "channel": "sms",
+      "month": "August",
+      "delivery": 3.0,
+      "open_rate": 0,
+      "click_rate": 0,
+      "revenue": 0,
+      "orders": 0
+    }
+  ],
+  "social": [
+    {
+      "month": "July",
+      "followers": 18808.0,
+      "new": 337.0,
+      "views": 194086.0,
+      "engagements": 3146.0,
+      "engage_rate": 0.0179
+    },
+    {
+      "month": "August",
+      "followers": 12844.0,
+      "new": 107.0,
+      "views": 33571.0,
+      "engagements": 816.0,
+      "engage_rate": 0.0244
+    }
+  ]
+}

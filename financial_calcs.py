@@ -157,20 +157,19 @@ def calculate_opex_monthly(opex_expenses: List[Dict], year: int = 2026) -> Dict[
 
 def calculate_wholesale_revenue_monthly(deals: List[Dict], year: int = 2026) -> Tuple[Dict[int, float], Dict[int, float]]:
     """
-    Calculate monthly wholesale revenue and COGS.
-    Distributes each deal around its delivery month:
-      50% in delivery month, 18% in months +/-1, 7% in months +/-2.
-    Nov and Dec are always zero for wholesale.
+    Calculate monthly wholesale revenue and COGS — recognized 100% in the
+    delivery month. Prior versions used a 5-month spread (50/18/7 around
+    delivery) and additionally hardcoded Nov+Dec to zero; both were removed
+    Aug 27 2026 so single-month deals (like Matt's Aug-Dec bell curve)
+    recognize where the analyst planned them.
 
     Returns: (revenue_dict, cogs_dict) where each is {month: amount}
     """
-    # Distribution weights around the delivery month
+    # Single-month recognition: revenue lands entirely in the delivery month.
+    # (If we ever need to model PO lead cycles or return-window tails, restore
+    # the SPREAD list with weights that sum to 1.0.)
     SPREAD = [
-        (-2, 0.07),  # 2 months before
-        (-1, 0.18),  # 1 month before
-        ( 0, 0.50),  # delivery month
-        (+1, 0.18),  # 1 month after
-        (+2, 0.07),  # 2 months after
+        (0, 1.00),
     ]
 
     monthly_revenue = {month: 0.0 for month in range(1, 13)}
@@ -206,11 +205,11 @@ def calculate_wholesale_revenue_monthly(deals: List[Dict], year: int = 2026) -> 
             total_cogs_rate = cogs_product + cogs_warehousing + cogs_freight + cogs_merchant
             cogs = revenue * total_cogs_rate
 
-        # Spread revenue and COGS around delivery month
+        # Recognize revenue/COGS in the target month(s).
         delivery_month = delivery_date.month
         for offset, weight in SPREAD:
             target_month = delivery_month + offset
-            if 1 <= target_month <= 10:  # Nov/Dec always zero
+            if 1 <= target_month <= 12:
                 monthly_revenue[target_month] += revenue * weight
                 monthly_cogs[target_month] += cogs * weight
 
